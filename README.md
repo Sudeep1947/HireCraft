@@ -855,7 +855,7 @@ routing/smoke suites) plus the production build (`tsc -b && vite build`).
 - One candidate pool per scenario step: each run scores the live pool under the
   scenario's config snapshot; multi-scenario cohort comparison and cross-scenario
   analytics are deferred.
-- Deterministic rule-based scoring only: explainability (SHAP/LIME), fairness
+- Deterministic rule-based scoring only: explainability, fairness
   metrics, adversarial analysis, and the skill-graph timeline are future phases.
 
 
