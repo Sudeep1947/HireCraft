@@ -18,18 +18,18 @@ export function InterviewTimeline({
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
                   isCompleted
-                    ? "bg-green-500 text-white"
+                    ? "bg-emerald-500 text-white"
                     : isCurrent
                       ? "bg-primary-500 text-white ring-2 ring-primary-200"
-                      : "bg-gray-200 text-gray-500"
+                      : "bg-surface-muted text-ink-muted"
                 }`}
               >
                 {isCompleted ? "✓" : idx + 1}
               </div>
-              <span className="mt-1 text-[10px] text-gray-500 capitalize">{step.replace("_", " ")}</span>
+              <span className="mt-1 text-[10px] text-ink-muted capitalize">{step.replace("_", " ")}</span>
             </div>
             {idx < steps.length - 1 && (
-              <div className={`mx-1 h-0.5 w-8 ${isCompleted ? "bg-green-500" : "bg-gray-200"}`} />
+              <div className={`mx-1 h-0.5 w-8 ${isCompleted ? "bg-emerald-500" : "bg-surface-muted"}`} />
             )}
           </div>
         );

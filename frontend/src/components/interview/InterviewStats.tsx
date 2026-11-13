@@ -10,11 +10,11 @@ export function InterviewStats({
   color?: "blue" | "green" | "purple" | "amber" | "red";
 }) {
   const colors = {
-    blue: "bg-blue-50 text-blue-700",
-    green: "bg-green-50 text-green-700",
-    purple: "bg-purple-50 text-purple-700",
+    blue: "bg-sky-50 text-sky-700",
+    green: "bg-emerald-50 text-emerald-700",
+    purple: "bg-violet-50 text-violet-700",
     amber: "bg-amber-50 text-amber-700",
-    red: "bg-red-50 text-red-700",
+    red: "bg-rose-50 text-rose-700",
   };
 
   return (

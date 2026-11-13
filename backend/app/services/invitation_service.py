@@ -64,7 +64,11 @@ class InvitationService:
 
         existing_invite = await self._invitation_repo.get_pending_by_email_and_org(email, organization_id)
         if existing_invite:
-            raise ConflictError(detail="An active invitation already exists for this email in this organization")
+            if self._as_aware_utc(existing_invite.expires_at) < datetime.now(timezone.utc):
+                existing_invite.status = InvitationStatus.EXPIRED.value
+                await self._session.flush()
+            else:
+                raise ConflictError(detail="An active invitation already exists for this email in this organization. You can resend or revoke it from the Pending Invitations list below.")
 
         existing_user = await self._user_repo.get_by_email(email)
         if existing_user:

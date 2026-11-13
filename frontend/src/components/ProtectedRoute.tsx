@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { LoadingSpinner } from "./ui/LoadingSpinner";
 import { AccessDenied } from "../pages/AccessDenied";
 import type { RoleName } from "../types/auth";
+import { isRoleAllowed } from "../utils/roleRouting";
 import type { Permission } from "../types/permissions";
 import { hasPermission, hasAnyPermission, hasAllPermissions } from "../types/permissions";
 
@@ -39,8 +40,7 @@ export function ProtectedRoute({
 
   if (user) {
     if (roles) {
-      const hasRole = roles.some((r) => user.roles.includes(r));
-      if (!hasRole) {
+      if (!isRoleAllowed(roles, user.roles)) {
         return <AccessDenied requiredRoles={roles} />;
       }
     }

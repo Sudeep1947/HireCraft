@@ -153,9 +153,20 @@ class InterviewDetailResponse(BaseModel):
     candidate_id: uuid.UUID
     candidate_name: str = ""
     candidate_email: str = ""
+    # The application this interview was scheduled from, when it was scheduled
+    # through the application-driven flow (``Interview.application_id``). Null
+    # for a practice/mock interview and for any interview that predates that
+    # flow -- the column is nullable for exactly that reason.
+    #
+    # Safe for both roles: the recruiter needs it to navigate back to the
+    # application the interview belongs to, and a candidate already sees the
+    # same id on their own application. It identifies *the record*, and carries
+    # no score, note or decision.
+    application_id: uuid.UUID | None = None
     recruiter_id: uuid.UUID | None = None
     recruiter_name: str = ""
     interview_type: str
+    stage: str = "recruiter"
     status: str
     scheduled_at: datetime | None = None
     started_at: datetime | None = None
@@ -177,10 +188,20 @@ class InterviewListItem(BaseModel):
     job_title: str = ""
     candidate_id: uuid.UUID
     candidate_name: str = ""
+    # See ``InterviewDetailResponse.application_id``: the application this
+    # interview belongs to, or None for a practice/mock interview.
+    application_id: uuid.UUID | None = None
     interview_type: str
+    stage: str = "recruiter"
     status: str
     scheduled_at: datetime | None = None
     completed_at: datetime | None = None
+    # The scheduled length and the interviewer's display name, so a list row
+    # (the candidate's Interviews page, the recruiter's workspace) can render
+    # "30 minutes · with Ada Lovelace" without a second request. Additive: both
+    # default to a value that keeps every older client working unchanged.
+    duration_minutes: int | None = None
+    recruiter_name: str = ""
     total_questions: int
     questions_answered: int
     overall_score: int | None = None

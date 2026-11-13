@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { Button } from "../../components/ui/Button";
 import { ScenarioStatusBadge } from "../../components/simulations/ScenarioStatusBadge";
+import { SimulationShortlistPanel } from "../../components/simulations/SimulationShortlistPanel";
 import { useToast } from "../../contexts/ToastContext";
 import { simulationApi } from "../../api/simulations";
 import {
@@ -39,14 +39,15 @@ const SORT_OPTIONS: { value: SimulationResultsSortBy; label: string }[] = [
 ];
 
 function statusChip(status: string) {
+  // Spec badge tokens (badge-* variants from the design system).
   const palette: Record<string, string> = {
-    qualified: "bg-green-100 text-green-800",
-    not_qualified: "bg-red-100 text-red-800",
-    shortlisted: "bg-blue-100 text-blue-800",
-    not_shortlisted: "bg-gray-100 text-gray-800",
+    qualified: "badge-success",
+    not_qualified: "badge-danger",
+    shortlisted: "badge-info",
+    not_shortlisted: "badge-neutral",
   };
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${palette[status] ?? "bg-gray-100 text-gray-800"}`}>
+    <span className={`badge ${palette[status] ?? "badge-neutral"}`}>
       {status.replace(/_/g, " ")}
     </span>
   );
@@ -54,20 +55,20 @@ function statusChip(status: string) {
 
 function ResultRow({ row }: { row: SimulationResultItem }) {
   return (
-    <tr className="hover:bg-gray-50">
-      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+    <tr>
+      <td className="whitespace-nowrap font-medium text-gray-900">
         #{row.simulation_rank}
         <span className="ml-2 text-xs text-gray-400">base #{row.baseline_rank}</span>
       </td>
-      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{row.candidate_name}</td>
-      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">{row.baseline_score}</td>
-      <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-gray-900">
+      <td className="whitespace-nowrap text-gray-900">{row.candidate_name}</td>
+      <td className="whitespace-nowrap text-gray-500">{row.baseline_score}</td>
+      <td className="whitespace-nowrap font-semibold text-gray-900">
         {row.simulation_score}
       </td>
       <td
-        className={`whitespace-nowrap px-4 py-3 text-sm font-medium ${
+        className={`whitespace-nowrap font-medium ${
           row.score_change > 0
-            ? "text-green-600"
+            ? "text-emerald-600"
             : row.score_change < 0
               ? "text-red-600"
               : "text-gray-500"
@@ -76,9 +77,9 @@ function ResultRow({ row }: { row: SimulationResultItem }) {
         {formatScoreDelta(row.score_change)}
       </td>
       <td
-        className={`whitespace-nowrap px-4 py-3 text-sm font-medium ${
+        className={`whitespace-nowrap font-medium ${
           row.rank_change > 0
-            ? "text-green-600"
+            ? "text-emerald-600"
             : row.rank_change < 0
               ? "text-red-600"
               : "text-gray-500"
@@ -86,14 +87,11 @@ function ResultRow({ row }: { row: SimulationResultItem }) {
       >
         {row.rank_change > 0 ? `+${row.rank_change}` : row.rank_change}
       </td>
-      <td className="whitespace-nowrap px-4 py-3">{statusChip(row.simulation_status)}</td>
-      <td className="whitespace-nowrap px-4 py-3">
+      <td className="whitespace-nowrap">{statusChip(row.simulation_status)}</td>
+      <td className="whitespace-nowrap">
         {statusChip(row.simulation_shortlisted ? "shortlisted" : "not_shortlisted")}
       </td>
-      <td
-        className="max-w-[18rem] truncate px-4 py-3 text-xs text-gray-500"
-        title={row.reason ?? ""}
-      >
+      <td className="max-w-[18rem] truncate text-xs text-gray-500" title={row.reason ?? ""}>
         {row.reason ?? "—"}
       </td>
     </tr>
@@ -112,15 +110,15 @@ function SummaryCard({
   deltaLabel: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+    <div className="card p-4">
+      <p className="section-label">{label}</p>
       <div className="mt-2 flex items-end justify-between">
         <div className="text-sm text-gray-600">
           Baseline <span className="font-semibold text-gray-900">{baseline}</span>
         </div>
         <div className="text-right">
-          <div className="text-lg font-bold text-gray-900">{simulation}</div>
-          <div className="text-xs font-medium text-primary-600">{deltaLabel}</div>
+          <div className="font-display text-lg font-bold text-gray-900">{simulation}</div>
+          <div className="text-xs font-semibold text-primary-600">{deltaLabel}</div>
         </div>
       </div>
     </div>
@@ -245,12 +243,28 @@ export function SimulationResults() {
     setPage(1);
   }
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <div className="skeleton h-8 w-64" />
+          <div className="skeleton h-4 w-48" />
+        </div>
+        <div className="skeleton h-16 w-full" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-24 w-full" />
+          ))}
+        </div>
+        <div className="skeleton h-72 w-full" />
+      </div>
+    );
+  }
 
   if (notFound || !scenario) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-gray-500">Simulation not found.</p>
+      <div className="empty-state">
+        <p className="text-sm text-gray-500">Simulation not found.</p>
         <Link
           to="/recruiter/simulations"
           className="mt-4 inline-block text-sm font-medium text-primary-600 hover:text-primary-700"
@@ -267,13 +281,13 @@ export function SimulationResults() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="page-header">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{scenario.name} — Results</h1>
+            <h1 className="page-title">{scenario.name} — Results</h1>
             {selectedExecution && <ScenarioStatusBadge status={selectedExecution.status} />}
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="page-subtitle">
             {scenario.job_title} · {scenario.company}
           </p>
         </div>
@@ -298,14 +312,25 @@ export function SimulationResults() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <div className="info-banner">
         <span className="font-semibold">What-if analysis.</span> These scores rank candidates under a
         hypothetical configuration. No live hiring data (job, applications, rankings) was created or
         modified by this run — results are stored separately as simulation records.
       </div>
 
+      <SimulationShortlistPanel
+        simulationId={scenario.id}
+        executionId={
+          selectedExecution?.id ?? latestCompleted?.id ?? ""
+        }
+        hasResults={
+          Boolean(results && results.total > 0) &&
+          selectedExecution?.status === "completed"
+        }
+      />
+
       {activeExecution && (
-        <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-800">
+        <div className="flex items-start gap-2.5 rounded-xl border border-violet-200/70 bg-violet-50/70 px-4 py-3 text-sm font-medium text-violet-700 shadow-xs">
           Run in progress — {activeExecution.progress}% ({activeExecution.processed_candidates}/
           {activeExecution.total_candidates} candidates).
         </div>
@@ -313,11 +338,11 @@ export function SimulationResults() {
 
       {executions.length > 0 && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500">Execution:</span>
+          <span className="text-sm text-gray-500">Execution:</span>
           <select
             value={selectedExecution?.id ?? ""}
             onChange={(e) => selectExecution(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+            className="field w-auto py-2"
           >
             <option value="" disabled>
               Select an execution
@@ -336,8 +361,8 @@ export function SimulationResults() {
       )}
 
       {summary && summary.status === "no_execution" ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-          <p className="text-gray-500">No simulation has been run yet.</p>
+        <div className="empty-state">
+          <p className="text-sm text-gray-500">No simulation has been run yet.</p>
           <Link
             to={`/recruiter/simulations/${scenario.id}`}
             className="mt-3 inline-block text-sm font-medium text-primary-600 hover:text-primary-700"
@@ -375,18 +400,18 @@ export function SimulationResults() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="rounded-xl border border-gray-200 bg-white p-5 lg:col-span-2">
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">Impact metrics</h2>
-              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="card p-5 lg:col-span-2">
+              <h2 className="section-title">Impact metrics</h2>
+              <dl className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {summary.metrics.length === 0 ? (
                   <p className="text-sm text-gray-500">No impact metrics recorded for this run.</p>
                 ) : (
                   summary.metrics.map((metric) => (
                     <div
                       key={metric.metric}
-                      className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                      className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2"
                     >
-                      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      <dt className="section-label">
                         {simulationMetricLabel(metric.metric)}
                       </dt>
                       <dd className="mt-1 flex items-baseline gap-2 text-sm">
@@ -401,7 +426,7 @@ export function SimulationResults() {
                         <span
                           className={`text-xs font-semibold ${
                             metric.change_value > 0
-                              ? "text-green-600"
+                              ? "text-emerald-600"
                               : metric.change_value < 0
                                 ? "text-red-600"
                                 : "text-gray-400"
@@ -416,9 +441,9 @@ export function SimulationResults() {
               </dl>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">Pool movement</h2>
-              <dl className="space-y-3 text-sm">
+            <div className="card p-5">
+              <h2 className="section-title">Pool movement</h2>
+              <dl className="mt-3 space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <dt className="text-gray-600">Qualified (baseline → simulation)</dt>
                   <dd className="font-semibold text-gray-900">
@@ -435,7 +460,7 @@ export function SimulationResults() {
                 </div>
                 <div className="flex items-center justify-between">
                   <dt className="text-gray-600">Entered shortlist</dt>
-                  <dd className="font-semibold text-green-600">
+                  <dd className="font-semibold text-emerald-600">
                     {summary.summary.pool_movement?.entered_shortlist ?? 0}
                   </dd>
                 </div>
@@ -463,20 +488,20 @@ export function SimulationResults() {
           </div>
 
           {summary.major_movements.length > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">Major movers</h2>
-              <div className="flex flex-col gap-2">
+            <div className="card p-5">
+              <h2 className="section-title">Major movers</h2>
+              <div className="mt-3 flex flex-col gap-2">
                 {summary.major_movements.map((row) => (
                   <div
                     key={row.candidate_id}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
+                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2 text-sm"
                   >
                     <span className="font-medium text-gray-900">{row.candidate_name}</span>
                     <span className="text-gray-500">
                       {row.baseline_score} → {row.simulation_score}{" "}
                       <span
                         className={`font-semibold ${
-                          row.score_change > 0 ? "text-green-600" : "text-red-600"
+                          row.score_change > 0 ? "text-emerald-600" : "text-red-600"
                         }`}
                       >
                         ({formatScoreDelta(row.score_change)})
@@ -493,10 +518,10 @@ export function SimulationResults() {
             </div>
           )}
 
-          <div className="rounded-xl border border-gray-200 bg-white">
+          <div className="card overflow-hidden p-0">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Candidate results</h2>
+                <h2 className="section-title">Candidate results</h2>
                 <p className="mt-0.5 text-xs text-gray-500">
                   {results ? `${results.total} candidates · page ${results.page}` : "Loading…"}
                 </p>
@@ -508,7 +533,8 @@ export function SimulationResults() {
                     setChangeFilter(e.target.value as "" | SimulationChangeFilter);
                     setPage(1);
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+                  aria-label="Filter by change"
+                  className="field w-auto py-2"
                 >
                   {CHANGE_FILTER_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -522,7 +548,8 @@ export function SimulationResults() {
                     setSortBy(e.target.value as SimulationResultsSortBy);
                     setPage(1);
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+                  aria-label="Sort results by"
+                  className="field w-auto py-2"
                 >
                   {SORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -544,23 +571,20 @@ export function SimulationResults() {
             </div>
 
             {results && results.items.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+              <div className="table-wrap rounded-none border-0 shadow-none">
+                <table className="data-table">
+                  <thead>
                     <tr>
                       {["Rank", "Candidate", "Base score", "Sim score", "Δ score", "Δ rank", "Status", "Shortlist", "Why"].map(
                         (header) => (
-                          <th
-                            key={header}
-                            className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                          >
+                          <th key={header} className="whitespace-nowrap">
                             {header}
                           </th>
                         ),
                       )}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody>
                     {results.items.map((row) => (
                       <ResultRow key={row.candidate_id} row={row} />
                     ))}
@@ -568,10 +592,12 @@ export function SimulationResults() {
                 </table>
               </div>
             ) : (
-              <div className="px-5 py-10 text-center text-sm text-gray-500">
-                {results && results.total === 0
-                  ? "No results for this run."
-                  : "No candidates match the current filter."}
+              <div className="empty-state my-4">
+                <p className="text-sm text-gray-500">
+                  {results && results.total === 0
+                    ? "No results for this run."
+                    : "No candidates match the current filter."}
+                </p>
               </div>
             )}
 

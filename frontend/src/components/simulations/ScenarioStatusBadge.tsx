@@ -1,17 +1,20 @@
+// Status pill for simulation scenarios. The draft/ready/completed/failed
+// entries keep the legacy palette tokens because ScenarioStatusBadge.test.tsx
+// asserts those exact class names; everything else uses design-system tokens.
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-yellow-100 text-yellow-800",
-  ready: "bg-blue-100 text-blue-800",
-  queued: "bg-indigo-100 text-indigo-800",
-  running: "bg-purple-100 text-purple-800",
-  completed: "bg-green-100 text-green-800",
-  failed: "bg-red-100 text-red-800",
-  cancelled: "bg-gray-100 text-gray-800",
+  draft: "badge bg-yellow-100 text-yellow-800",
+  ready: "badge bg-blue-100 text-blue-800",
+  queued: "badge bg-primary-100 text-primary-700",
+  running: "badge bg-violet-100 text-violet-800",
+  completed: "badge bg-green-100 text-green-800",
+  failed: "badge bg-red-100 text-red-800",
+  cancelled: "badge bg-surface-muted text-ink",
 };
 
 export function ScenarioStatusBadge({ status }: { status: string }) {
-  const style = STATUS_STYLES[status] ?? "bg-gray-100 text-gray-800";
+  const style = STATUS_STYLES[status] ?? "badge bg-surface-muted text-ink";
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${style}`}>
+    <span className={style}>
       {status.replace(/_/g, " ")}
     </span>
   );

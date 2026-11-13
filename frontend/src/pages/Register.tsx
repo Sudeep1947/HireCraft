@@ -3,18 +3,12 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { useAuth } from "../hooks/useAuth";
-import type { RoleName } from "../types/auth";
 import { getErrorMessage } from "../utils/error";
 import { validateRegisterForm, getPasswordStrengthIssues, getPasswordStrengthLevel } from "../utils/validation";
+import { getDashboardPath } from "../utils/roleRouting";
 import { useState } from "react";
 
-function getDashboardPath(roles: RoleName[]): string {
-  if (roles.includes("super_admin") || roles.includes("admin")) return "/admin/dashboard";
-  if (roles.includes("organization_admin")) return "/admin/dashboard";
-  if (roles.includes("hr") || roles.includes("hr_manager")) return "/hr/dashboard";
-  if (roles.includes("recruiter")) return "/recruiter/dashboard";
-  return "/candidate/dashboard";
-}
+
 
 export function Register() {
   const navigate = useNavigate();
@@ -60,11 +54,26 @@ export function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+      {/* Aurora backdrop */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_0%,rgba(85,87,230,0.10),transparent)]"
+        aria-hidden="true"
+      />
+      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-brand-gradient opacity-20 blur-3xl animate-float" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-tr from-violet-400 to-primary-400 opacity-20 blur-3xl animate-float [animation-delay:2.5s]" aria-hidden="true" />
+
+      <div className="relative z-10 w-full max-w-md space-y-6 animate-entrance">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Create candidate account</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow">
+            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+            </svg>
+          </div>
+          <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">
+            <span className="text-gradient">Create candidate account</span>
+          </h1>
+          <p className="mt-1.5 text-sm text-gray-500">
             Register to explore job opportunities
           </p>
           <p className="mt-2 text-xs text-gray-400">
@@ -72,9 +81,9 @@ export function Register() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="card space-y-4 p-7">
           {serverError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            <div className="error-banner" role="alert">
               {serverError}
             </div>
           )}
@@ -110,7 +119,7 @@ export function Register() {
           />
 
           {form.password.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex gap-1">
                 {(["weak", "fair", "strong"] as const).map((level) => {
                   const current = getPasswordStrengthLevel(form.password);
@@ -119,13 +128,13 @@ export function Register() {
                   return (
                     <div
                       key={level}
-                      className={`h-1 flex-1 rounded-full transition-colors ${
+                      className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
                         active
                           ? level === "weak"
                             ? "bg-red-500"
                             : level === "fair"
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
+                              ? "bg-amber-400"
+                              : "bg-emerald-500"
                           : "bg-gray-200"
                       }`}
                     />
@@ -157,7 +166,7 @@ export function Register() {
 
         <p className="text-center text-sm text-gray-500">
           Already have an account?{" "}
-          <a href="/login" className="text-primary-600 hover:text-primary-500">
+          <a href="/login" className="font-semibold text-primary-600 transition-colors hover:text-primary-700">
             Sign in
           </a>
         </p>

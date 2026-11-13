@@ -58,7 +58,7 @@ class EmailService:
         msg.attach(MIMEText(html_body, "html"))
 
         try:
-            with smtplib.SMTP(self._settings.smtp_host, self._settings.smtp_port) as server:
+            with smtplib.SMTP(self._settings.smtp_host, self._settings.smtp_port, timeout=10) as server:
                 if self._settings.smtp_port == 587:
                     server.starttls()
                 if self._settings.smtp_user and self._settings.smtp_password:

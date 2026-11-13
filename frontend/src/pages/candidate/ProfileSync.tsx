@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
+import { CheckCircle2 } from "lucide-react";
 import { candidateApi } from "../../api/candidate";
 import { useToast } from "../../contexts/ToastContext";
 import type { SyncDiffResponse, SyncDiffItem } from "../../types/candidate";
@@ -57,8 +57,20 @@ export function ProfileSync() {
     }
   }
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
-  if (error) return <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>;
+  if (loading)
+    return (
+      <div className="space-y-6 animate-fade-up">
+        <div className="skeleton h-9 w-72" />
+        <div className="skeleton h-44 w-full" />
+        <div className="skeleton h-44 w-full" />
+      </div>
+    );
+  if (error)
+    return (
+      <div className="space-y-6 animate-fade-up">
+        <div className="error-banner">{error}</div>
+      </div>
+    );
 
   const sections = [
     { key: "personal_info", label: "Personal Info", items: syncData?.personal_info || [] },
@@ -73,17 +85,18 @@ export function ProfileSync() {
   const hasDiffs = sections.some((s) => s.items.length > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Profile Synchronization</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="page-title">Profile Synchronization</h1>
+        <p className="page-subtitle">
           Compare parsed resume data with your profile and sync changes
         </p>
       </div>
 
       {!hasDiffs ? (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">
+        <div className="empty-state">
+          <CheckCircle2 className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+          <p className="text-sm text-gray-500">
             No differences found. Your profile is already in sync with this resume.
           </p>
         </div>
@@ -91,45 +104,45 @@ export function ProfileSync() {
         sections.map(
           (section) =>
             section.items.length > 0 && (
-              <div key={section.key} className="rounded-lg border border-gray-200 bg-white p-6">
-                <h2 className="mb-4 text-lg font-semibold text-gray-900">{section.label}</h2>
+              <div key={section.key} className="card p-6">
+                <h2 className="section-title mb-4">{section.label}</h2>
                 <div className="space-y-3">
                   {section.items.map((item: SyncDiffItem, idx: number) => (
                     <div
                       key={`${section.key}-${idx}`}
-                      className="flex items-center justify-between rounded-md border border-gray-100 bg-gray-50 p-3"
+                      className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white/70 p-3.5 transition-colors duration-200 hover:border-primary-200 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex-1">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      <div className="min-w-0 flex-1">
+                        <p className="section-label">
                           {item.field}
                         </p>
-                        <div className="mt-1 grid grid-cols-2 gap-4 text-sm">
+                        <div className="mt-1.5 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 sm:gap-4">
                           <div>
                             <span className="text-gray-400">Resume: </span>
-                            <span className="font-medium text-green-700">
+                            <span className="font-medium text-emerald-700">
                               {item.parsed_value || "—"}
                             </span>
                           </div>
                           <div>
                             <span className="text-gray-400">Profile: </span>
-                            <span className="font-medium text-blue-700">
+                            <span className="font-medium text-primary-700">
                               {item.profile_value || "—"}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
+                      <div className="flex shrink-0 items-center gap-2 sm:ml-4">
                         <button
                           onClick={() => handleAccept(section.key, idx, item.field)}
                           disabled={applying === `${section.key}-${idx}`}
-                          className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                          className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition-all duration-200 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Accept
                         </button>
                         <button
                           onClick={() => handleReject(section.key, idx, item.field)}
                           disabled={applying === `${section.key}-${idx}`}
-                          className="rounded bg-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-400 disabled:opacity-50"
+                          className="btn-secondary btn-sm disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Reject
                         </button>

@@ -17,6 +17,7 @@ export interface ScreeningResult {
   id: string;
   job_id: string;
   candidate_id: string;
+  application_id: string | null;
   resume_id: string | null;
   overall_match_score: number;
   skill_match_score: number;
@@ -638,4 +639,526 @@ export interface JobIntelligenceResponse {
   cached: boolean;
   candidate_intelligence: CandidateEvidenceIntelResponse;
   job_context: JobContextBlock;
+}
+
+// ─── Application Screening Detail (Phase 5) ─────────────────────────
+
+export type ApplicationScreeningState =
+  | "not_started"
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed"
+  | string;
+
+export interface ScreeningExecutionState {
+  effective_status: ApplicationScreeningState;
+  recorded_status: string;
+  attempts: number;
+  task_id: string | null;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface ScreeningApplicationContext {
+  id: string;
+  job_id: string;
+  candidate_id: string;
+  resume_id: string | null;
+  status: string;
+  applied_at: string | null;
+  updated_at: string | null;
+  cover_letter: string | null;
+  decision_reason: string | null;
+  decision_comment: string | null;
+  decided_at: string | null;
+  screening: ScreeningExecutionState;
+}
+
+export interface ScreeningCandidateContext {
+  id: string;
+  name: string;
+  email: string;
+  resume_id: string | null;
+  has_resume: boolean;
+}
+
+export interface ScreeningJobContext {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  employment_type: string;
+  experience_required: string;
+  education_required: string;
+  required_skills: string[];
+  preferred_skills: string[];
+}
+
+export interface ScreeningDimensionScore {
+  key: string;
+  label: string;
+  score: number;
+  source_column: string;
+}
+
+export interface ScreeningFreshness {
+  screened_at: string | null;
+  screening_resume_id: string | null;
+  application_resume_id: string | null;
+  resume_matches_application: boolean | null;
+  engine_version: string | null;
+  fit_engine_version: string | null;
+  evidence_engine_version: string | null;
+}
+
+export interface ScreeningIntelligenceSection {
+  available: boolean;
+  reason: string | null;
+}
+
+export interface ApplicationScreeningDetailResponse {
+  application: ScreeningApplicationContext;
+  candidate: ScreeningCandidateContext;
+  job: ScreeningJobContext;
+  screening_result: ScreeningResult | null;
+  match_breakdown: ScreeningDimensionScore[];
+  evidence_intelligence: CandidateEvidenceIntelResponse | null;
+  evidence_intelligence_section: ScreeningIntelligenceSection;
+  fit: JobFitResponse | null;
+  fit_section: ScreeningIntelligenceSection;
+  job_context: JobContextBlock | null;
+  job_context_section: ScreeningIntelligenceSection;
+  freshness: ScreeningFreshness;
+  limitations: string[];
+}
+
+// ─── Application Explanation (Phase 6) ─────────────────────────────
+// One explanation, two authorized projections. The recruiter and candidate
+// responses are deliberately different types: the candidate type is the only
+// thing a candidate-facing component may accept, and it has no field for an
+// internal verdict, a weight, a formula, a review flag or another candidate's
+// data. `weight` exists on the recruiter feature type only.
+
+export type ExplanationState =
+  | "not_started"
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "unknown";
+
+export interface ExplanationSection {
+  available: boolean;
+  reason: string | null;
+}
+
+export interface ExplanationEvidence {
+  source: string;
+  quote: string;
+  context: string | null;
+  section: string | null;
+}
+
+export interface ExplanationFeature {
+  category: string;
+  label: string;
+  score: number;
+  contribution_pct: number;
+  impact: string;
+  impact_description: string;
+  method: string | null;
+}
+
+export interface RecruiterExplanationFeature extends ExplanationFeature {
+  weight: number | null;
+}
+
+export interface ExplanationFactor {
+  category: string;
+  score: number;
+  contribution_pct: number;
+  reason: string;
+  evidence: ExplanationEvidence[];
+  evidence_available: boolean;
+}
+
+export interface ExplanationRequirement {
+  requirement: string;
+  requirement_type: string;
+  level: string;
+  category: string | null;
+  status: string;
+  evidence_strength: string;
+  reason: string;
+  evidence: ExplanationEvidence[];
+}
+
+export interface ExplanationSkillAlignment {
+  matched_skills: string[];
+  missing_required_skills: string[];
+  missing_preferred_skills: string[];
+  supported_skills: string[];
+  partial_evidence_skills: string[];
+  skills_without_evidence: string[];
+  insufficient_information_skills: string[];
+}
+
+export interface ExplanationAlignment {
+  status: string;
+  required_years: number | null;
+  relevant_years: number | null;
+  total_years: number | null;
+  relevance_basis: string | null;
+  reason: string;
+}
+
+export interface ExplanationEvidenceGap {
+  subject: string;
+  category: string;
+  note: string;
+}
+
+export interface ExplanationSuggestion {
+  category: "skill" | "certification" | "project" | "resume" | "interview";
+  subject: string | null;
+  text: string;
+  priority: string | null;
+}
+
+export interface ExplanationConfidence {
+  score: number;
+  level: string;
+  description: string;
+  data_completeness_pct: number;
+  data_points_available: number;
+  data_points_max: number;
+}
+
+export interface ExplanationFreshness {
+  screening_resume_id: string | null;
+  application_resume_id: string | null;
+  primary_resume_id: string | null;
+  evidence_resume_id: string | null;
+  screening_resume_is_current_primary: boolean | null;
+  evidence_resume_is_screening_resume: boolean | null;
+  screened_at: string | null;
+  fit_engine_version: string | null;
+  evidence_engine_version: string | null;
+  explainability_method: string;
+}
+
+export interface ExplanationScreeningState {
+  effective_status: ExplanationState;
+  screened: boolean;
+  message: string;
+}
+
+export interface ExplanationEvidenceStrength {
+  title: string;
+  category: string | null;
+  depth: string;
+  confidence: string;
+  reason: string;
+  evidence: ExplanationEvidence[];
+  evidence_available: boolean;
+}
+
+// ── Recruiter projection ──
+
+export interface ExplanationJob {
+  id: string;
+  title: string;
+  company: string;
+  required_skills: string[];
+  preferred_skills: string[];
+  experience_required: string | null;
+  education_required: string | null;
+}
+
+export interface RecruiterExplanationCandidate {
+  id: string;
+  name: string;
+  email: string;
+}
+
+// Recruiter-only free-form objects. The backend models these as untyped
+// dicts on purpose, so they are kept loose here rather than guessed at.
+export type ExplanationRecord = Record<string, unknown>;
+
+export interface RecruiterExplanationApplication {
+  id: string;
+  job_id: string;
+  candidate_id: string;
+  resume_id: string | null;
+  status: string;
+  applied_at: string | null;
+  updated_at: string | null;
+  screening_status: string;
+  screening_attempts: number;
+  screening_error: string | null;
+  screening_started_at: string | null;
+  screening_completed_at: string | null;
+}
+
+export interface RecruiterExplanationScore {
+  overall_score: number | null;
+  recommendation: string | null;
+  strength_level: string | null;
+  screened_at: string | null;
+  source: "screening_result" | "unavailable";
+}
+
+export interface RecruiterApplicationExplanation {
+  application: RecruiterExplanationApplication;
+  candidate: RecruiterExplanationCandidate;
+  job: ExplanationJob;
+  screening_state: ExplanationScreeningState;
+  score: RecruiterExplanationScore;
+  match_breakdown: ScreeningDimensionScore[];
+  feature_importance: RecruiterExplanationFeature[];
+  positive_factors: ExplanationFactor[];
+  negative_factors: ExplanationFactor[];
+  reasoning_summary: string;
+  confidence: ExplanationConfidence | null;
+  improvement_suggestions: ExplanationSuggestion[];
+  skill_alignment: ExplanationSkillAlignment;
+  requirements: ExplanationRequirement[];
+  experience_alignment: ExplanationAlignment | null;
+  evidence_gaps: ExplanationEvidenceGap[];
+  evidence_strengths: ExplanationEvidenceStrength[];
+  fit_classification: string | null;
+  fit_score: number | null;
+  fit_summary: string | null;
+  fit_summary_source: string | null;
+  fit_formula: string | null;
+  fit_weights: Record<string, number>;
+  review_flags: ExplanationRecord[];
+  screening_questions: ExplanationRecord[];
+  evidence_snapshot: ExplanationRecord | null;
+  explainability: ExplanationSection;
+  evidence_intelligence: ExplanationSection;
+  fit: ExplanationSection;
+  freshness: ExplanationFreshness;
+  limitations: string[];
+  disclaimer: string;
+}
+
+// ── Candidate projection ──
+
+export interface CandidateExplanationApplication {
+  id: string;
+  job_id: string;
+  status: string;
+  applied_at: string | null;
+  screening_status: string;
+}
+
+export interface CandidateExplanationScore {
+  overall_score: number | null;
+  screened_at: string | null;
+  source: "screening_result" | "unavailable";
+  match_classification: string | null;
+  match_score: number | null;
+  match_summary: string | null;
+  match_summary_source: string | null;
+}
+
+export interface CandidateApplicationExplanation {
+  application: CandidateExplanationApplication;
+  job: ExplanationJob;
+  screening_state: ExplanationScreeningState;
+  score: CandidateExplanationScore;
+  matched_skills: string[];
+  areas_with_limited_evidence: string[];
+  skill_alignment: ExplanationSkillAlignment;
+  aligned_areas: ExplanationFactor[];
+  limited_areas: ExplanationFactor[];
+  feature_importance: ExplanationFeature[];
+  requirements: ExplanationRequirement[];
+  experience_alignment: ExplanationAlignment | null;
+  evidence_gaps: ExplanationEvidenceGap[];
+  resume_evidence: ExplanationEvidence[];
+  improvement_suggestions: ExplanationSuggestion[];
+  confidence: ExplanationConfidence | null;
+  explainability: ExplanationSection;
+  evidence_intelligence: ExplanationSection;
+  fit: ExplanationSection;
+  freshness: ExplanationFreshness;
+  screening_notice: string;
+  limitations: string[];
+}
+
+// --- Application Fairness Context (Phase 7) ------------------------
+// Fairness is a property of a job's *screened population*, not of one
+// applicant. These types make that structural: the payload is scoped to a
+// population, the application appears only as a member of it, and there is no
+// per-candidate fairness score anywhere in the shape.
+//
+// Two rules encoded in the types rather than left to convention:
+//   * every metric carries a status and a reason, so "unavailable" is
+//     distinguishable from "favourable";
+//   * there is no field that combines fairness with the match score, so a
+//     component cannot render a fairness-adjusted score even by mistake.
+
+export type FairnessSectionStatus =
+  | "available"
+  | "insufficient_data"
+  | "no_screening_data"
+  | "unavailable";
+
+export interface FairnessSection {
+  status: FairnessSectionStatus;
+  reason: string | null;
+}
+
+export interface FairnessContextApplication {
+  id: string;
+  job_id: string;
+  status: string;
+  applied_at: string | null;
+}
+
+export interface FairnessContextJob {
+  id: string;
+  title: string;
+  company: string;
+}
+
+export interface FairnessScreeningState {
+  effective_status: ExplanationState | "failed" | "skipped" | "unknown";
+  screened: boolean;
+  message: string;
+}
+
+export interface FairnessPopulation {
+  job_id: string;
+  job_title: string;
+  applications: number;
+  screened: number;
+  unscreened: number;
+  application_is_in_population: boolean;
+  application_screening_included: boolean;
+  scope: string;
+  note: string;
+}
+
+export interface FairnessScoreDistribution {
+  average: number;
+  minimum: number;
+  maximum: number;
+  median: number;
+  std_dev: number;
+  positive_outcome_threshold: number;
+  note: string;
+}
+
+export type FairnessGroupMetricStatus =
+  | "available"
+  | "insufficient_sample"
+  | "no_demographic_data"
+  | "unknown";
+
+export interface FairnessGroupOutcome {
+  group_value: string;
+  sample_size: number;
+  positive_outcome_count: number | null;
+  positive_outcome_rate: number | null;
+  metric_status: FairnessGroupMetricStatus;
+  status_reason: string | null;
+}
+
+export type FairnessCrossGroupMetricStatus =
+  | "available"
+  | "identical_rates"
+  | "insufficient_data"
+  | "no_reference_group";
+
+export interface FairnessCrossGroupMetric {
+  metric_name: string;
+  metric_label: string;
+  value: number | null;
+  reference_group: string | null;
+  groups_compared: string[];
+  metric_status: FairnessCrossGroupMetricStatus;
+  status_reason: string | null;
+}
+
+export interface FairnessCoverage {
+  group_dimension: string;
+  attribute_source: string;
+  attributes_inferred: boolean;
+  population: number;
+  candidates_with_demographic: number;
+  candidates_missing_demographic: number;
+  demographic_coverage_pct: number;
+  minimum_group_size: number;
+  positive_outcome_threshold: number;
+}
+
+export interface FairnessGroupAnalysis {
+  metric_status: string;
+  status_reason: string | null;
+  reference_group: string | null;
+  coverage: FairnessCoverage;
+  group_outcomes: FairnessGroupOutcome[];
+  cross_group_metrics: FairnessCrossGroupMetric[];
+  methodology: string;
+  grouping_note: string;
+}
+
+export interface FairnessAlertView {
+  type: string;
+  severity: string;
+  message: string;
+  recommendation: string;
+}
+
+export interface FairnessFinding {
+  term: string;
+  category: string;
+  suggestion: string;
+}
+
+export interface FairnessSuggestion {
+  category: string;
+  suggestion: string;
+  priority: string;
+}
+
+export interface JobDescriptionBiasView {
+  job_id: string;
+  bias_score: number;
+  overall_assessment: string;
+  total_issues: number;
+  issue_counts: Record<string, number>;
+  findings: FairnessFinding[];
+  suggestions: FairnessSuggestion[];
+  note: string;
+}
+
+export interface AdversarialContextView {
+  status: "no_stored_result";
+  tested: boolean;
+  stability_score: number | null;
+  sensitivity: string | null;
+  reason: string;
+  run_on_demand_endpoint: string;
+}
+
+export interface ApplicationFairnessContext {
+  application: FairnessContextApplication;
+  job: FairnessContextJob;
+  screening_state: FairnessScreeningState;
+  population: FairnessPopulation;
+  sections: Record<string, FairnessSection>;
+  score_distribution: FairnessScoreDistribution | null;
+  group_analysis: FairnessGroupAnalysis | null;
+  alerts: FairnessAlertView[];
+  job_description_bias: JobDescriptionBiasView | null;
+  adversarial: AdversarialContextView;
+  limitations: string[];
+  disclaimer: string;
 }

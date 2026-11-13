@@ -58,33 +58,31 @@ export function ResumeUpload() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Upload Resume</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="page-title">Upload Resume</h1>
+        <p className="page-subtitle">
           Upload your resume to get AI-powered parsing and analysis
         </p>
       </div>
 
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>
-      )}
+      {error && <div className="error-banner">{error}</div>}
 
       <DragDropUpload onFileSelect={handleFileSelect} disabled={uploading} />
 
       {uploading && (
-        <div className="space-y-2">
+        <div className="card p-5">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-gray-700">Uploading and processing...</span>
-            <span className="text-gray-500">{progress}%</span>
+            <span className="font-semibold text-primary-700">{progress}%</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-gray-200">
             <div
-              className="h-full rounded-full bg-primary-600 transition-all duration-500"
+              className="h-full rounded-full bg-brand-gradient transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="field-hint">
             Your resume is being parsed. This may take a moment.
           </p>
         </div>
@@ -92,7 +90,7 @@ export function ResumeUpload() {
 
       <button
         onClick={() => navigate("/candidate/resume")}
-        className="text-sm text-gray-500 hover:text-gray-700"
+        className="btn-ghost btn-sm"
       >
         &larr; Back to Resumes
       </button>

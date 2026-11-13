@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { interviewApi } from "../../api/interview";
+import { getServerErrorMessage } from "../../utils/error";
 import type { InterviewAnalytics } from "../../types/interview";
 
 export function InterviewAnalyticsPage() {
@@ -8,30 +9,76 @@ export function InterviewAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const result = await interviewApi.getAnalytics();
-        setAnalytics(result);
-      } catch {
-        setError("Failed to load analytics");
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await interviewApi.getAnalytics();
+      setAnalytics(result);
+    } catch (err) {
+      // The server's own message when it sent one (403, 500 with detail); the
+      // generic sentence only when it did not. The failure is shown with a
+      // retry, never hidden.
+      setError(getServerErrorMessage(err, "Failed to load analytics"));
+    } finally {
+      setLoading(false);
     }
-    load();
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const header = (
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">Interview Analytics</h1>
+      <p className="mt-1 text-sm text-gray-500">Comprehensive interview performance insights</p>
+    </div>
+  );
+
   if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
-  if (error) return <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>;
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+          <p>{error}</p>
+          <button
+            onClick={load}
+            className="mt-3 rounded-lg bg-white px-3 py-1.5 font-medium text-red-700 shadow-sm ring-1 ring-inset ring-red-200 hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!analytics) return null;
+
+  // No interviews yet: an honest empty state rather than a wall of zeroes --
+  // there is nothing to average, and none of the numbers below would mean
+  // anything yet. Every figure on this page comes from the caller's own
+  // interview records; nothing here is filled in on their behalf.
+  if (analytics.total_interviews === 0) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+          <p className="font-medium text-gray-900">No interviews yet</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Statistics, score distributions and trends appear here once interviews
+            have been scheduled and completed.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Interview Analytics</h1>
-        <p className="mt-1 text-sm text-gray-500">Comprehensive interview performance insights</p>
-      </div>
+      {header}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-xl bg-blue-50 p-4">

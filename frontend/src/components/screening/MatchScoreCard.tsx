@@ -1,17 +1,17 @@
 import type { ScreeningResult, StrengthLevel, HiringRecommendation } from "../../types/screening";
 
 const strengthColors: Record<StrengthLevel, string> = {
-  excellent: "text-green-600 bg-green-50",
-  good: "text-blue-600 bg-blue-50",
-  average: "text-yellow-600 bg-yellow-50",
-  low: "text-red-600 bg-red-50",
+  excellent: "badge-success",
+  good: "badge-info",
+  average: "badge-warning",
+  low: "badge-danger",
 };
 
 const recommendationColors: Record<HiringRecommendation, string> = {
-  strongly_recommend: "text-green-700 bg-green-100",
-  recommend: "text-blue-700 bg-blue-100",
-  consider: "text-yellow-700 bg-yellow-100",
-  not_recommended: "text-red-700 bg-red-100",
+  strongly_recommend: "badge-success",
+  recommend: "badge-info",
+  consider: "badge-warning",
+  not_recommended: "badge-danger",
 };
 
 function formatRecommendation(rec: string): string {
@@ -20,14 +20,14 @@ function formatRecommendation(rec: string): string {
 
 function ScoreBar({ label, score }: { label: string; score: number }) {
   const color =
-    score >= 80 ? "bg-green-500" : score >= 60 ? "bg-blue-500" : score >= 40 ? "bg-yellow-500" : "bg-red-500";
+    score >= 80 ? "bg-emerald-500" : score >= 60 ? "bg-sky-500" : score >= 40 ? "bg-amber-500" : "bg-rose-500";
   return (
     <div className="flex items-center gap-3">
-      <span className="w-28 text-xs text-gray-600 shrink-0">{label}</span>
-      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+      <span className="w-28 text-xs text-ink-muted shrink-0">{label}</span>
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${score}%` }} />
       </div>
-      <span className="text-xs font-medium text-gray-700 w-8 text-right">{score}%</span>
+      <span className="text-xs font-medium text-ink w-8 text-right">{score}%</span>
     </div>
   );
 }
@@ -48,7 +48,7 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
 
   if (compact) {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white">
+      <div className="card flex items-center gap-3 p-3">
         <svg width="48" height="48" viewBox="0 0 100 100" className="shrink-0">
           <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" strokeWidth="8" />
           <circle
@@ -62,9 +62,9 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
           </text>
         </svg>
         <div className="min-w-0">
-          {candidateName && <p className="text-sm font-medium text-gray-900 truncate">{candidateName}</p>}
-          {jobTitle && <p className="text-xs text-gray-500 truncate">{jobTitle}</p>}
-          <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${strengthColors[screening.strength_level as StrengthLevel] || "text-gray-600 bg-gray-50"}`}>
+          {candidateName && <p className="text-sm font-medium text-ink truncate">{candidateName}</p>}
+          {jobTitle && <p className="text-xs text-ink-muted truncate">{jobTitle}</p>}
+          <span className={`badge mt-1 ${strengthColors[screening.strength_level as StrengthLevel] || "badge-neutral"}`}>
             {screening.strength_level}
           </span>
         </div>
@@ -73,13 +73,13 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="card p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
-          {candidateName && <h3 className="text-lg font-semibold text-gray-900">{candidateName}</h3>}
-          {jobTitle && <p className="text-sm text-gray-500">{jobTitle}</p>}
+          {candidateName && <h3 className="text-lg font-semibold text-ink">{candidateName}</h3>}
+          {jobTitle && <p className="text-sm text-ink-muted">{jobTitle}</p>}
         </div>
-        <span className={`px-3 py-1 text-xs font-medium rounded-full ${recommendationColors[screening.recommendation as HiringRecommendation] || "text-gray-600 bg-gray-100"}`}>
+        <span className={`badge px-3 py-1 ${recommendationColors[screening.recommendation as HiringRecommendation] || "badge-neutral"}`}>
           {formatRecommendation(screening.recommendation)}
         </span>
       </div>
@@ -97,7 +97,7 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
               className="text-2xl font-bold" fill={overallColor}>
               {overall}
             </text>
-            <text x="50" y="64" textAnchor="middle" className="text-xs fill-gray-500">
+            <text x="50" y="64" textAnchor="middle" className="text-xs fill-ink-muted">
               Overall
             </text>
           </svg>
@@ -115,10 +115,10 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
 
       {screening.matched_skills && screening.matched_skills.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Matched Skills</p>
+          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">Matched Skills</p>
           <div className="flex flex-wrap gap-1.5">
             {screening.matched_skills.map((s) => (
-              <span key={s} className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">{s}</span>
+              <span key={s} className="badge badge-success">{s}</span>
             ))}
           </div>
         </div>
@@ -126,10 +126,10 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
 
       {screening.missing_required_skills && screening.missing_required_skills.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Missing Required Skills</p>
+          <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-2">Missing Required Skills</p>
           <div className="flex flex-wrap gap-1.5">
             {screening.missing_required_skills.map((s) => (
-              <span key={s} className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">{s}</span>
+              <span key={s} className="badge badge-danger">{s}</span>
             ))}
           </div>
         </div>
@@ -138,11 +138,11 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
       <div className="grid grid-cols-2 gap-4 mt-4">
         {screening.strengths && screening.strengths.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Strengths</p>
+            <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide mb-1">Strengths</p>
             <ul className="space-y-1">
               {screening.strengths.map((s, i) => (
-                <li key={i} className="text-xs text-gray-600 flex items-start gap-1">
-                  <span className="text-green-500 mt-0.5">+</span> {s}
+                <li key={i} className="text-xs text-ink-muted flex items-start gap-1">
+                  <span className="text-emerald-500 mt-0.5">+</span> {s}
                 </li>
               ))}
             </ul>
@@ -150,11 +150,11 @@ export function MatchScoreCard({ screening, candidateName, jobTitle, compact }: 
         )}
         {screening.weaknesses && screening.weaknesses.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-red-600 uppercase tracking-wide mb-1">Weaknesses</p>
+            <p className="text-xs font-medium text-rose-600 uppercase tracking-wide mb-1">Weaknesses</p>
             <ul className="space-y-1">
               {screening.weaknesses.map((w, i) => (
-                <li key={i} className="text-xs text-gray-600 flex items-start gap-1">
-                  <span className="text-red-500 mt-0.5">-</span> {w}
+                <li key={i} className="text-xs text-ink-muted flex items-start gap-1">
+                  <span className="text-rose-500 mt-0.5">-</span> {w}
                 </li>
               ))}
             </ul>

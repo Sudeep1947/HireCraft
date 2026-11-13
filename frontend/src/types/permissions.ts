@@ -204,6 +204,16 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 };
 
+ROLE_PERMISSIONS.hr_manager = ROLE_PERMISSIONS.hr;
+ROLE_PERMISSIONS.super_admin = ROLE_PERMISSIONS.admin;
+ROLE_PERMISSIONS.organization_admin = [
+  ...ROLE_PERMISSIONS.hr,
+  ...ROLE_PERMISSIONS.recruiter,
+  "admin:user:view",
+  "admin:audit:view",
+  "admin:analytics:view",
+];
+
 export function getPermissionsForRoles(roles: string[]): Set<Permission> {
   const perms = new Set<Permission>();
   for (const role of roles) {

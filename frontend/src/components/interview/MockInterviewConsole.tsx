@@ -51,7 +51,7 @@ export function MockInterviewConsole({
   if (!currentQuestion) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">No questions available.</p>
+        <p className="text-ink-muted">No questions available.</p>
         <button onClick={onComplete} className="mt-4 rounded-lg bg-primary-600 px-4 py-2 text-sm text-white">
           Complete Interview
         </button>
@@ -63,8 +63,8 @@ export function MockInterviewConsole({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Mock Interview</h3>
-          <p className="text-sm text-gray-500">Question {currentIndex + 1} of {questions.length}</p>
+          <h3 className="text-lg font-semibold text-ink">Mock Interview</h3>
+          <p className="text-sm text-ink-muted">Question {currentIndex + 1} of {questions.length}</p>
         </div>
         <div className="flex items-center gap-2">
           {questions.map((_, idx) => (
@@ -72,10 +72,10 @@ export function MockInterviewConsole({
               key={idx}
               className={`h-2 w-2 rounded-full ${
                 idx < currentIndex
-                  ? "bg-green-500"
+                  ? "bg-emerald-500"
                   : idx === currentIndex
                     ? "bg-primary-500"
-                    : "bg-gray-200"
+                    : "bg-surface-muted"
               }`}
             />
           ))}

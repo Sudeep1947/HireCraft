@@ -9,6 +9,8 @@ import type {
   SimulationScenarioFormData,
   SimulationScenarioListResponse,
   SimulationScenarioUpdateData,
+  SimulationShortlistApplyRequest,
+  SimulationShortlistApplyResponse,
   SimulationStatusResponse,
   SimulationSummaryResponse,
   SimulationValidationResponse,
@@ -24,6 +26,26 @@ import type {
   RequirementImpactListResponse,
   RequirementImpactResponse,
 } from "../types/requirementImpact";
+import type {
+  CombinedThresholdShortlistResponse,
+  ThresholdImpactResponse,
+  ShortlistImpactResponse,
+} from "../types/thresholdShortlist";
+import type { FairnessImpactResponse } from "../types/fairnessImpact";
+import type { ExplainabilityImpactResponse } from "../types/explainabilityImpact";
+import type { SkillImpactResponse } from "../types/skillImpact";
+import type {
+  MultiScenarioComparisonResponse,
+  SimulationComparisonRequest,
+} from "../types/simulationComparison";
+import type {
+  NLInterpretRequest,
+  NLInterpretResponse,
+  NLConfirmRequest,
+  NLConfirmResponse,
+  NLExplainRequest,
+  NLExplainResponse,
+} from "../types/simulationIntent";
 
 export const simulationApi = {
   list: () =>
@@ -78,6 +100,16 @@ export const simulationApi = {
       .get<SimulationSummaryResponse>(`/simulations/${simulationId}/summary`, {
         params: executionId ? { execution_id: executionId } : undefined,
       })
+      .then((r) => r.data),
+
+  // ─── Optional manual shortlist (human-confirmed) ─────────────────
+
+  applyShortlist: (simulationId: string, data: SimulationShortlistApplyRequest) =>
+    apiClient
+      .post<SimulationShortlistApplyResponse>(
+        `/simulations/${simulationId}/apply-shortlist`,
+        data,
+      )
       .then((r) => r.data),
 
   // ─── Phase 4: Ranking Impact Analysis ─────────────────────────────
@@ -176,5 +208,120 @@ export const simulationApi = {
         `/simulations/${simulationId}/requirement-impact/candidates/${candidateId}`,
         { params: executionId ? { execution_id: executionId } : undefined },
       )
+      .then((r) => r.data),
+
+  // ─── Phase 6: Threshold & Shortlist Impact Analysis ─────────────
+
+  getThresholdImpact: (simulationId: string, executionId?: string, boundaryRange?: number) =>
+    apiClient
+      .get<ThresholdImpactResponse>(`/simulations/${simulationId}/threshold-impact`, {
+        params: {
+          ...(executionId ? { execution_id: executionId } : {}),
+          ...(boundaryRange !== undefined ? { boundary_range: boundaryRange } : {}),
+        },
+      })
+      .then((r) => r.data),
+
+  getShortlistImpact: (simulationId: string, executionId?: string, boundaryRange?: number) =>
+    apiClient
+      .get<ShortlistImpactResponse>(`/simulations/${simulationId}/shortlist-impact`, {
+        params: {
+          ...(executionId ? { execution_id: executionId } : {}),
+          ...(boundaryRange !== undefined ? { boundary_range: boundaryRange } : {}),
+        },
+      })
+      .then((r) => r.data),
+
+  getCombinedThresholdShortlistImpact: (
+    simulationId: string,
+    executionId?: string,
+    boundaryRange?: number,
+  ) =>
+    apiClient
+      .get<CombinedThresholdShortlistResponse>(
+        `/simulations/${simulationId}/threshold-shortlist-impact`,
+        {
+          params: {
+            ...(executionId ? { execution_id: executionId } : {}),
+            ...(boundaryRange !== undefined ? { boundary_range: boundaryRange } : {}),
+          },
+        },
+      )
+      .then((r) => r.data),
+
+  // ─── Phase 7: Fairness Impact Analysis ───────────────────────────
+
+  getFairnessImpact: (
+    simulationId: string,
+    executionId?: string,
+    minimumGroupSize?: number,
+  ) =>
+    apiClient
+      .get<FairnessImpactResponse>(
+        `/simulations/${simulationId}/fairness-impact`,
+        {
+          params: {
+            ...(executionId ? { execution_id: executionId } : {}),
+            ...(minimumGroupSize !== undefined
+              ? { minimum_group_size: minimumGroupSize }
+              : {}),
+          },
+        },
+      )
+      .then((r) => r.data),
+
+  // ─── Phase 8: Explainability Impact Analysis ───────────────────
+
+  getExplainabilityImpact: (
+    simulationId: string,
+    executionId?: string,
+  ) =>
+    apiClient
+      .get<ExplainabilityImpactResponse>(
+        `/simulations/${simulationId}/explainability-impact`,
+        {
+          params: {
+            ...(executionId ? { execution_id: executionId } : {}),
+          },
+        },
+      )
+      .then((r) => r.data),
+
+  // ─── Phase 9: Skill Impact Analysis ─────────────────────────
+
+  getSkillImpact: (simulationId: string, executionId?: string) =>
+    apiClient
+      .get<SkillImpactResponse>(
+        `/simulations/${simulationId}/skill-impact`,
+        {
+          params: {
+            ...(executionId ? { execution_id: executionId } : {}),
+          },
+        },
+      )
+      .then((r) => r.data),
+
+  // ─── Phase 10: Multi-Scenario Comparison ─────────────────────
+
+  compareScenarios: (data: SimulationComparisonRequest) =>
+    apiClient
+      .post<MultiScenarioComparisonResponse>("/simulations/compare", data)
+      .then((r) => r.data),
+
+  // ─── Phase 11: Natural Language Simulation Agent ─────────────
+
+  interpretNL: (data: NLInterpretRequest) =>
+    apiClient
+      .post<NLInterpretResponse>("/simulations/interpret", data)
+      .then((r) => r.data),
+
+  confirmNL: (data: NLConfirmRequest) =>
+    apiClient
+      .post<NLConfirmResponse>("/simulations/confirm", data)
+      .then((r) => r.data),
+
+  explainResults: (data: NLExplainRequest) =>
+    apiClient
+      .post<NLExplainResponse>("/simulations/explain", data)
       .then((r) => r.data),
 };

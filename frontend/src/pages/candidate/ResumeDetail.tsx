@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { ResumeScoreGauge } from "../../components/candidate/ResumeScoreGauge";
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { candidateApi } from "../../api/candidate";
 import type { ResumeDetail as ResumeDetailType } from "../../types/candidate";
 
@@ -81,12 +80,22 @@ export function ResumeDetail() {
     }
   }
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading)
+    return (
+      <div className="space-y-6 animate-fade-up">
+        <div className="skeleton h-9 w-72" />
+        <div className="skeleton h-56 w-full" />
+        <div className="skeleton h-40 w-full" />
+        <div className="skeleton h-64 w-full" />
+      </div>
+    );
 
   if (error || !detail) {
     return (
-      <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
-        {error || "Resume not found"}
+      <div className="space-y-6 animate-fade-up">
+        <div className="error-banner">
+          {error || "Resume not found"}
+        </div>
       </div>
     );
   }
@@ -94,31 +103,31 @@ export function ResumeDetail() {
   const { resume, parsed_data: parsed, analysis } = detail;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{resume.original_filename}</h1>
-          <p className="text-sm text-gray-500">
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
+        <div className="min-w-0">
+          <h1 className="page-title truncate">{resume.original_filename}</h1>
+          <p className="page-subtitle">
             Uploaded on {new Date(resume.created_at).toLocaleDateString()} &middot; v{resume.version}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => navigate("/candidate/resume")}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="btn-secondary btn-sm"
           >
             &larr; Back
           </button>
           <button
             onClick={handleDownload}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="btn-secondary btn-sm"
           >
             Download
           </button>
           {resume.status === "failed" && (
             <button
               onClick={handleRetry}
-              className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50"
+              className="btn-secondary btn-sm border-amber-300 bg-amber-50 text-amber-700 hover:border-amber-400 hover:bg-amber-100 hover:text-amber-800"
             >
               Retry Parsing
             </button>
@@ -127,13 +136,13 @@ export function ResumeDetail() {
             <>
               <button
                 onClick={() => navigate(`/candidate/resume/${id}/intelligence`)}
-                className="rounded-lg border border-primary-300 px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+                className="btn-primary btn-sm"
               >
                 Intelligence Report
               </button>
               <button
                 onClick={() => navigate(`/candidate/resume/${id}/sync`)}
-                className="rounded-lg border border-primary-300 px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+                className="btn-secondary btn-sm"
               >
                 Sync with Profile
               </button>
@@ -142,7 +151,7 @@ export function ResumeDetail() {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="btn-danger btn-sm"
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
@@ -150,9 +159,9 @@ export function ResumeDetail() {
       </div>
 
       {analysis && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Analysis</h2>
-          <div className="flex flex-wrap gap-8">
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Analysis</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
             <ResumeScoreGauge score={analysis.quality_score} label="Quality Score" />
             <ResumeScoreGauge score={analysis.completeness_score ?? 0} label="Completeness" />
             <ResumeScoreGauge score={analysis.readability_score ?? 0} label="Readability" />
@@ -161,9 +170,9 @@ export function ResumeDetail() {
             <ResumeScoreGauge score={analysis.ats_score} label="ATS Score" />
           </div>
           {analysis.recommendations && analysis.recommendations.length > 0 && (
-            <div className="mt-4">
-              <h3 className="mb-2 text-sm font-medium text-gray-700">Recommendations</h3>
-              <ul className="space-y-1">
+            <div className="mt-6">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">Recommendations</h3>
+              <ul className="space-y-1.5">
                 {analysis.recommendations.map((r, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
                     <span className="mt-0.5 text-amber-500">&bull;</span>
@@ -174,19 +183,19 @@ export function ResumeDetail() {
             </div>
           )}
           {analysis.section_scores && (
-            <div className="mt-4">
-              <h3 className="mb-2 text-sm font-medium text-gray-700">Section Scores</h3>
-              <div className="space-y-2">
+            <div className="mt-6">
+              <h3 className="mb-2 text-sm font-semibold text-gray-900">Section Scores</h3>
+              <div className="space-y-2.5">
                 {Object.entries(analysis.section_scores).map(([section, score]) => (
                   <div key={section} className="flex items-center gap-3">
                     <span className="w-32 text-sm capitalize text-gray-600">{section.replace(/_/g, " ")}</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
                       <div
-                        className={`h-full rounded-full ${score >= 20 ? "bg-green-500" : score >= 10 ? "bg-yellow-500" : "bg-red-500"}`}
+                        className={`h-full rounded-full transition-all duration-500 ${score >= 20 ? "bg-gradient-to-r from-emerald-400 to-emerald-600" : score >= 10 ? "bg-gradient-to-r from-amber-400 to-amber-600" : "bg-gradient-to-r from-red-400 to-red-600"}`}
                         style={{ width: `${(score / 30) * 100}%` }}
                       />
                     </div>
-                    <span className="w-8 text-right text-xs text-gray-500">{score}</span>
+                    <span className="w-8 text-right text-xs font-medium text-gray-500">{score}</span>
                   </div>
                 ))}
               </div>
@@ -195,27 +204,27 @@ export function ResumeDetail() {
         </div>
       )}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Resume Preview</h2>
-          <span className="text-xs text-gray-400">
+      <div className="card p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="section-title">Resume Preview</h2>
+          <span className="text-xs font-medium text-gray-400">
             v{resume.version} &middot; {resume.file_type.toUpperCase()}
           </span>
         </div>
-        <div className="flex items-center gap-4 rounded-md bg-gray-50 p-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100">
-            <svg className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="panel-brand flex flex-wrap items-center gap-4 rounded-xl p-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/80 text-primary-600 shadow-xs">
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900">{resume.original_filename}</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-gray-900">{resume.original_filename}</p>
             <p className="text-xs text-gray-500">
               {Math.round(resume.file_size / 1024)} KB &middot; Uploaded {new Date(resume.created_at).toLocaleDateString()}
             </p>
           </div>
           {resume.is_primary && (
-            <span className="ml-auto rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-700">
+            <span className="badge-primary ml-auto">
               Primary
             </span>
           )}
@@ -223,12 +232,12 @@ export function ResumeDetail() {
       </div>
 
       {parsed && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Parsed Data</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Parsed Data</h2>
 
           {parsed.summary && (
             <Section title="Summary">
-              <p className="rounded-md bg-gray-50 p-3 text-sm text-gray-700">{parsed.summary}</p>
+              <p className="rounded-xl bg-gray-50 p-3.5 text-sm leading-relaxed text-gray-700">{parsed.summary}</p>
             </Section>
           )}
 
@@ -241,8 +250,8 @@ export function ResumeDetail() {
           {parsed.education && parsed.education.length > 0 && (
             <Section title="Education">
               {parsed.education.map((edu: any, i: number) => (
-                <div key={i} className="mb-3 rounded-md bg-gray-50 p-3 text-sm">
-                  {edu.degree && <p className="font-medium">{edu.degree}</p>}
+                <div key={i} className="mb-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-sm">
+                  {edu.degree && <p className="font-semibold text-gray-900">{edu.degree}</p>}
                   {edu.institution && <p className="text-gray-600">{edu.institution}</p>}
                   {(edu.start_date || edu.end_date) && (
                     <p className="text-xs text-gray-400">
@@ -257,8 +266,8 @@ export function ResumeDetail() {
           {parsed.experience && parsed.experience.length > 0 && (
             <Section title="Experience">
               {parsed.experience.map((exp: any, i: number) => (
-                <div key={i} className="mb-3 rounded-md bg-gray-50 p-3 text-sm">
-                  {(exp.job_title || exp.title) && <p className="font-medium">{exp.job_title || exp.title}</p>}
+                <div key={i} className="mb-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-sm">
+                  {(exp.job_title || exp.title) && <p className="font-semibold text-gray-900">{exp.job_title || exp.title}</p>}
                   {exp.company && <p className="text-gray-600">{exp.company}</p>}
                   {((exp.start_date || exp.end_date) || exp.duration_label) && (
                     <p className="text-xs text-gray-400">
@@ -268,9 +277,9 @@ export function ResumeDetail() {
                     </p>
                   )}
                   {Array.isArray(exp.technologies) && exp.technologies.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {exp.technologies.slice(0, 10).map((t: string, j: number) => (
-                        <span key={j} className="rounded bg-gray-200 px-1.5 py-0.5 text-[11px] text-gray-600">{t}</span>
+                        <span key={j} className="badge-neutral">{t}</span>
                       ))}
                     </div>
                   )}
@@ -289,12 +298,12 @@ export function ResumeDetail() {
           {parsed.projects && parsed.projects.length > 0 && (
             <Section title="Projects">
               {parsed.projects.map((proj: any, i: number) => (
-                <div key={i} className="mb-3 rounded-md bg-gray-50 p-3 text-sm">
-                  {proj.name && <p className="font-medium">{proj.name}</p>}
+                <div key={i} className="mb-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 text-sm">
+                  {proj.name && <p className="font-semibold text-gray-900">{proj.name}</p>}
                   {Array.isArray(proj.technologies) && proj.technologies.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {proj.technologies.slice(0, 10).map((t: string, j: number) => (
-                        <span key={j} className="rounded bg-gray-200 px-1.5 py-0.5 text-[11px] text-gray-600">{t}</span>
+                        <span key={j} className="badge-neutral">{t}</span>
                       ))}
                     </div>
                   )}
@@ -314,10 +323,7 @@ export function ResumeDetail() {
             <Section title="Skills">
               <div className="flex flex-wrap gap-2">
                 {parsed.skills.map((skill: any, i: number) => (
-                  <span
-                    key={i}
-                    className="rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700"
-                  >
+                  <span key={i} className="badge-primary">
                     {skill.display_name || skill.name}
                   </span>
                 ))}
@@ -329,7 +335,7 @@ export function ResumeDetail() {
             <Section title="Certifications">
               {parsed.certifications.map((cert: any, i: number) => (
                 <div key={i} className="mb-2 text-sm">
-                  <p className="font-medium">{cert.name}</p>
+                  <p className="font-medium text-gray-900">{cert.name}</p>
                   {cert.issuer && <p className="text-xs text-gray-500">{cert.issuer}</p>}
                 </div>
               ))}
@@ -340,7 +346,7 @@ export function ResumeDetail() {
             <Section title="Languages">
               {parsed.languages.map((lang: any, i: number) => (
                 <div key={i} className="mb-2 text-sm">
-                  <p className="font-medium">{lang.language}</p>
+                  <p className="font-medium text-gray-900">{lang.language}</p>
                   {lang.proficiency && (
                     <p className="text-xs capitalize text-gray-500">{lang.proficiency}</p>
                   )}
@@ -352,13 +358,13 @@ export function ResumeDetail() {
       )}
 
       {!parsed && resume.status === "uploaded" && (
-        <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-700">
+        <div className="rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm font-medium text-amber-700 shadow-xs">
           This resume is being processed. Please check back shortly.
         </div>
       )}
 
       {!parsed && resume.status === "failed" && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+        <div className="error-banner">
           Resume parsing failed. Please try uploading again.
         </div>
       )}
@@ -368,8 +374,8 @@ export function ResumeDetail() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+    <div className="mb-6 last:mb-0">
+      <h3 className="section-label mb-3">
         {title}
       </h3>
       {children}
@@ -389,12 +395,12 @@ function InfoGrid({ data }: { data: Record<string, unknown> }) {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-3 text-sm">
+    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
       {Object.entries(data).map(([key, value]) => {
         if (!value || key === "additional_urls") return null;
         return (
-          <div key={key}>
-            <span className="text-gray-400">{labels[key] || key}</span>
+          <div key={key} className="rounded-xl bg-gray-50/70 px-3.5 py-2.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{labels[key] || key}</span>
             <p className="font-medium text-gray-900">{String(value)}</p>
           </div>
         );

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
+  AlertTriangle,
   Gauge,
   Play,
   RefreshCw,
@@ -14,18 +15,38 @@ import type {
   Skill2JobCapabilities,
   Skill2JobHealth,
 } from "../../types/skill2job";
-import { extractErrorMessage } from "../Skill2Job/sections/shared";
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object" && "response" in err) {
+    const data = (err as any).response?.data;
+    const msg = data?.error?.message ?? data?.detail;
+    if (typeof msg === "string" && msg.trim()) return msg;
+    if (Array.isArray(msg) && msg.length > 0) {
+      const first = msg[0];
+      if (typeof first === "object" && first !== null) {
+        return first.msg || first.message || first.detail || JSON.stringify(first);
+      }
+      return String(first);
+    }
+  }
+  return fallback;
+}
 
 export function Skill2JobDiagnostics() {
   const [health, setHealth] = useState<Skill2JobHealth | null>(null);
   const [capabilities, setCapabilities] = useState<Skill2JobCapabilities | null>(null);
   const [traces, setTraces] = useState<PipelineTraceSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError("");
     try {
       const [h, c, t] = await Promise.all([
@@ -35,12 +56,12 @@ export function Skill2JobDiagnostics() {
       ]);
       setHealth(h);
       setCapabilities(c);
-      setTraces(t);
+      setTraces(Array.isArray(t) ? t : ((t as any)?.items ?? []));
     } catch (err: any) {
-      const msg = extractErrorMessage(err?.response?.data?.detail);
-      setError(msg || "Failed to load Skill2Job diagnostics.");
+      setError(extractErrorMessage(err, "Failed to load Skill2Job diagnostics."));
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -50,12 +71,12 @@ export function Skill2JobDiagnostics() {
 
   async function runPipeline() {
     setRunning(true);
+    setError("");
     try {
       await skill2jobApi.runPipeline();
-      await load();
+      await load(true);
     } catch (err: any) {
-      const msg = extractErrorMessage(err?.response?.data?.detail);
-      setError(msg || "Pipeline run failed.");
+      setError(extractErrorMessage(err, "Pipeline run failed."));
     } finally {
       setRunning(false);
     }
@@ -63,22 +84,28 @@ export function Skill2JobDiagnostics() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-white p-16">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
-        <span className="ml-3 text-sm text-gray-500">Loading diagnostics...</span>
+      <div className="space-y-6 animate-fade-up">
+        <div className="skeleton h-24 w-full" />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="skeleton h-32 w-full" />
+          <div className="skeleton h-32 w-full" />
+        </div>
+        <div className="skeleton h-48 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-6">
+    <div className="space-y-6 animate-fade-up">
+      <div className="panel-brand flex flex-wrap items-center justify-between gap-4 p-6">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-            <ShieldCheck className="h-5 w-5 text-primary-600" aria-hidden="true" />
+          <h2 className="section-title flex items-center gap-2">
+            <span className="rounded-lg bg-white/80 p-1.5 text-primary-600 shadow-xs">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            </span>
             Skill2Job Diagnostics (Admin)
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-600">
             Internal implementation status, capabilities, and pipeline execution traces. Hidden from
             candidates; access is restricted to super_admin/admin.
           </p>
@@ -88,56 +115,77 @@ export function Skill2JobDiagnostics() {
             type="button"
             onClick={runPipeline}
             disabled={running}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+            className="btn-primary btn-md"
           >
             <Play className="h-4 w-4" aria-hidden="true" />
             {running ? "Running pipeline…" : "Run full pipeline"}
           </button>
           <button
             type="button"
-            onClick={load}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            onClick={() => load(true)}
+            disabled={refreshing || loading || running}
+            className="btn-secondary btn-md"
           >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" /> Refresh
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
+            {refreshing ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="error-banner">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-gray-200 bg-white p-6">
-          <h3 className="flex items-center gap-2 text-sm font-bold text-gray-900">
-            <Server className="h-4 w-4 text-gray-400" aria-hidden="true" /> Health
+        <section className="card p-5">
+          <h3 className="section-title mb-3 flex items-center gap-2 text-sm">
+            <span className="rounded-lg bg-emerald-50 p-1.5 text-emerald-600">
+              <Server className="h-4 w-4" aria-hidden="true" />
+            </span>
+            Health
           </h3>
-          <p className="mt-2 text-sm text-gray-600">
-            Module: <span className="font-semibold">{health?.module ?? "—"}</span> · Status:{" "}
+          <p className="text-sm text-gray-600">
+            Module:{" "}
+            <span className="rounded-md bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-800">
+              {health?.module ?? "—"}
+            </span>{" "}
+            · Status:{" "}
             <span
-              className={`font-semibold ${health?.status === "ok" || health?.status === "healthy" ? "text-green-600" : "text-amber-600"}`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                health?.status === "ok" || health?.status === "healthy" || health?.status === "available"
+                  ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70"
+                  : "bg-amber-50 text-amber-700 ring-amber-200/70"
+              }`}
             >
               {health?.status ?? "unknown"}
             </span>
           </p>
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-6">
-          <h3 className="flex items-center gap-2 text-sm font-bold text-gray-900">
-            <Gauge className="h-4 w-4 text-gray-400" aria-hidden="true" /> Capabilities
+        <section className="card p-5">
+          <h3 className="section-title mb-3 flex items-center gap-2 text-sm">
+            <span className="rounded-lg bg-primary-50 p-1.5 text-primary-600">
+              <Gauge className="h-4 w-4" aria-hidden="true" />
+            </span>
+            Capabilities
           </h3>
-          <ul className="mt-3 divide-y divide-gray-100">
+          <ul className="divide-y divide-gray-100">
             {capabilities?.capabilities.map((c) => (
-              <li key={c.key} className="flex items-center justify-between gap-3 py-2">
-                <div>
+              <li key={c.key} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800">{c.label}</p>
                   <p className="text-xs text-gray-400">
                     phase {c.phase} &middot; {c.key}
                   </p>
                 </div>
                 <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    c.status === "available" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                  className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                    c.status === "available"
+                      ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70"
+                      : "bg-gray-100 text-gray-500 ring-gray-200/80"
                   }`}
                 >
                   {c.status}
@@ -148,22 +196,34 @@ export function Skill2JobDiagnostics() {
         </section>
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-6">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-gray-900">
-          <Workflow className="h-4 w-4 text-gray-400" aria-hidden="true" /> Pipeline Executions
+      <section className="card p-5">
+        <h3 className="section-title mb-3 flex items-center gap-2 text-sm">
+          <span className="rounded-lg bg-violet-50 p-1.5 text-violet-600">
+            <Workflow className="h-4 w-4" aria-hidden="true" />
+          </span>
+          Pipeline Executions
         </h3>
         {traces.length === 0 ? (
-          <p className="mt-3 text-sm text-gray-400">No pipeline runs recorded yet.</p>
+          <div className="empty-state">
+            <Workflow className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+            <h4 className="text-base font-semibold text-gray-900">
+              No pipeline runs recorded yet.
+            </h4>
+            <p className="mt-1 text-sm text-gray-500">
+              Run the full pipeline to populate execution traces.
+            </p>
+          </div>
         ) : (
-          <ul className="mt-3 divide-y divide-gray-100">
+          <ul className="divide-y divide-gray-100">
             {traces.map((t) => (
-              <li key={t.run_id} className="flex items-center justify-between gap-4 py-2">
-                <span className="flex items-center gap-2 text-xs text-gray-500">
-                  <Activity className="h-3.5 w-3.5" aria-hidden="true" />
-                  <code className="truncate">{t.run_id}</code>
+              <li key={t.run_id} className="flex items-center justify-between gap-4 py-2.5">
+                <span className="flex min-w-0 items-center gap-2 text-xs text-gray-500">
+                  <Activity className="h-3.5 w-3.5 shrink-0 text-primary-500" aria-hidden="true" />
+                  <code className="truncate font-mono">{t.run_id}</code>
                 </span>
                 <span className="shrink-0 text-xs text-gray-400">
-                  {t.steps} steps{t.created_at ? ` · ${new Date(t.created_at).toLocaleString()}` : ""}
+                  {t.steps} steps
+                  {t.created_at ? ` · ${new Date(t.created_at).toLocaleString()}` : ""}
                 </span>
               </li>
             ))}

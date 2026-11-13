@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { useToast } from "../../contexts/ToastContext";
 import { aiSearch } from "../../api/screening";
 import type { AISearchResultItem, AISearchResponse } from "../../types/screening";
@@ -43,26 +42,28 @@ export function AISearchPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">AI Candidate Search</h1>
-        <p className="mt-1 text-sm text-gray-500">Search candidates using natural language</p>
+        <h1 className="page-title">AI Candidate Search</h1>
+        <p className="page-subtitle">Search candidates using natural language</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="card p-6">
         <div className="flex gap-3">
+          <label className="sr-only" htmlFor="ai-search-input">Search candidates</label>
           <input
+            id="ai-search-input"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder='e.g. "Python developers with AWS experience"'
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
+            className="field flex-1"
           />
           <button
             onClick={() => handleSearch()}
             disabled={loading || !query.trim()}
-            className="rounded-lg bg-primary-600 px-6 py-3 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            className="btn-primary btn-md px-6"
           >
             {loading ? "Searching..." : "Search"}
           </button>
@@ -70,13 +71,13 @@ export function AISearchPage() {
 
         {!searched && (
           <div className="mt-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Try these queries</p>
+            <p className="section-label mb-2">Try these queries</p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTION_QUERIES.map((sq) => (
                 <button
                   key={sq}
                   onClick={() => { setQuery(sq); handleSearch(sq); }}
-                  className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                  className="chip"
                 >
                   {sq}
                 </button>
@@ -86,7 +87,17 @@ export function AISearchPage() {
         )}
       </div>
 
-      {loading && <LoadingSpinner size="lg" className="mt-10" />}
+      {loading && (
+        <div className="space-y-3" aria-busy="true" aria-label="Searching candidates">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card p-5">
+              <div className="skeleton h-5 w-48" />
+              <div className="skeleton mt-2 h-4 w-64" />
+              <div className="skeleton mt-3 h-4 w-full" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {results && !loading && (
         <div className="space-y-4">
@@ -102,8 +113,12 @@ export function AISearchPage() {
           </div>
 
           {results.results.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-              <p className="text-gray-500">No candidates found matching your query. Try broadening your search.</p>
+            <div className="empty-state">
+              <svg className="mb-3 h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607z" />
+              </svg>
+              <h3 className="text-base font-semibold text-gray-900">No candidates found</h3>
+              <p className="mt-1 text-sm text-gray-500">No candidates found matching your query. Try broadening your search.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -120,60 +135,60 @@ export function AISearchPage() {
 
 function SearchResultCard({ result }: { result: AISearchResultItem }) {
   const relevanceColor =
-    result.relevance_score >= 80 ? "text-green-600 bg-green-50" :
-    result.relevance_score >= 60 ? "text-blue-600 bg-blue-50" :
-    result.relevance_score >= 40 ? "text-yellow-600 bg-yellow-50" :
-    "text-red-600 bg-red-50";
+    result.relevance_score >= 80 ? "badge-success" :
+    result.relevance_score >= 60 ? "badge-info" :
+    result.relevance_score >= 40 ? "badge-warning" :
+    "badge-danger";
 
   const recLabel = result.recommendation.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const recColor =
-    result.recommendation === "strongly_recommend" ? "text-green-700 bg-green-100" :
-    result.recommendation === "recommend" ? "text-blue-700 bg-blue-100" :
-    result.recommendation === "consider" ? "text-yellow-700 bg-yellow-100" :
-    result.recommendation === "not_recommended" ? "text-red-700 bg-red-100" :
-    "text-gray-600 bg-gray-100";
+    result.recommendation === "strongly_recommend" ? "badge-success" :
+    result.recommendation === "recommend" ? "badge-info" :
+    result.recommendation === "consider" ? "badge-warning" :
+    result.recommendation === "not_recommended" ? "badge-danger" :
+    "badge-neutral";
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
+    <div className="card card-hover p-5">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-semibold text-gray-900">{result.candidate_name}</h3>
-            <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${relevanceColor}`}>
+            <span className={`badge ${relevanceColor}`}>
               {result.relevance_score}% match
             </span>
             {result.overall_score > 0 && (
-              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                result.overall_score >= 80 ? "bg-green-100 text-green-800" :
-                result.overall_score >= 60 ? "bg-blue-100 text-blue-800" :
-                "bg-yellow-100 text-yellow-800"
+              <span className={`badge ${
+                result.overall_score >= 80 ? "badge-success" :
+                result.overall_score >= 60 ? "badge-info" :
+                "badge-warning"
               }`}>
                 Score: {result.overall_score}%
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{result.candidate_email}</p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+          <p className="mt-0.5 text-sm text-gray-500">{result.candidate_email}</p>
+          <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
             {result.experience_years > 0 && <span>{result.experience_years} years exp</span>}
             {result.location && <span>{result.location}</span>}
           </div>
         </div>
-        <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${recColor}`}>
+        <span className={`badge ${recColor}`}>
           {recLabel}
         </span>
       </div>
 
       {result.matched_skills.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {result.matched_skills.slice(0, 8).map((s) => (
-            <span key={s} className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">{s}</span>
+            <span key={s} className="badge badge-success">{s}</span>
           ))}
         </div>
       )}
       {result.missing_skills.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {result.missing_skills.slice(0, 5).map((s) => (
-            <span key={s} className="px-2 py-0.5 text-xs font-medium bg-red-50 text-red-600 rounded-full">{s}</span>
+            <span key={s} className="badge badge-danger">{s}</span>
           ))}
         </div>
       )}

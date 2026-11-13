@@ -1,3 +1,5 @@
+import { Sparkles } from "lucide-react";
+
 interface Props {
   prompts: string[];
   onSelect: (prompt: string) => void;
@@ -7,14 +9,17 @@ export function SuggestedPrompts({ prompts, onSelect }: Props) {
   if (prompts.length === 0) return null;
 
   return (
-    <div className="px-4 pb-2">
-      <div className="text-xs text-gray-500 mb-2 font-medium">Suggested</div>
+    <div className="animate-fade-up px-4 pb-2">
+      <div className="section-label mb-2 flex items-center gap-1.5">
+        <Sparkles className="h-3 w-3" aria-hidden="true" />
+        Suggested
+      </div>
       <div className="flex flex-wrap gap-2">
         {prompts.map((p, i) => (
           <button
             key={i}
             onClick={() => onSelect(p)}
-            className="text-xs bg-indigo-50 text-indigo-700 rounded-full px-3 py-1.5 hover:bg-indigo-100 transition-colors border border-indigo-100"
+            className="chip bg-primary-50/60 text-primary-700 hover:bg-primary-50"
           >
             {p}
           </button>

@@ -1,3 +1,5 @@
+import { AlertTriangle, ShieldCheck } from "lucide-react";
+
 import type {
   FairnessMetricDetail,
   BiasAlert,
@@ -23,7 +25,7 @@ export function FairnessScoreCard({
     score >= 80 ? "Excellent" : score >= 60 ? "Good" : score >= 40 ? "Needs Improvement" : "Poor";
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="card card-hover flex flex-col items-center gap-2 p-5">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth="8" />
         <circle
@@ -60,7 +62,7 @@ export function FairnessScoreCard({
           {statusText}
         </text>
       </svg>
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+      <span className="text-sm font-semibold text-gray-700">{label}</span>
     </div>
   );
 }
@@ -69,20 +71,22 @@ export function FairnessScoreCard({
 
 export function MetricStatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    fair: "bg-green-100 text-green-800 border-green-200",
-    good: "bg-green-100 text-green-800 border-green-200",
-    excellent: "bg-green-100 text-green-800 border-green-200",
-    moderate: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    concerning: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    biased: "bg-red-100 text-red-800 border-red-200",
-    poor: "bg-red-100 text-red-800 border-red-200",
-    needs_improvement: "bg-orange-100 text-orange-800 border-orange-200",
-    high: "bg-red-100 text-red-800 border-red-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    fair: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+    good: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+    excellent: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+    moderate: "bg-amber-50 text-amber-700 ring-amber-200/70",
+    concerning: "bg-amber-50 text-amber-700 ring-amber-200/70",
+    low: "bg-amber-50 text-amber-700 ring-amber-200/70",
+    biased: "bg-red-50 text-red-700 ring-red-200/70",
+    poor: "bg-red-50 text-red-700 ring-red-200/70",
+    needs_improvement: "bg-orange-50 text-orange-700 ring-orange-200/70",
+    high: "bg-red-50 text-red-700 ring-red-200/70",
+    medium: "bg-amber-50 text-amber-700 ring-amber-200/70",
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status] || "bg-gray-100 text-gray-800 border-gray-200"}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset transition-colors ${styles[status] || "bg-gray-100 text-gray-700 ring-gray-200/80"}`}
+    >
       {status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
     </span>
   );
@@ -105,23 +109,27 @@ export function FairnessMetricsTable({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+            <th>Metric</th>
+            <th>Value</th>
+            <th>Status</th>
+            <th>Description</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody>
           {Object.entries(metrics).map(([key, detail]) => (
-            <tr key={key} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">{labels[key] || key}</td>
-              <td className="px-4 py-3 text-sm text-gray-700 font-mono">{typeof detail.value === "number" ? detail.value.toFixed(4) : String(detail.value)}</td>
-              <td className="px-4 py-3"><MetricStatusBadge status={detail.status} /></td>
-              <td className="px-4 py-3 text-sm text-gray-500 max-w-md">{detail.description}</td>
+            <tr key={key}>
+              <td className="font-medium text-gray-900">{labels[key] || key}</td>
+              <td className="font-mono text-sm">
+                {typeof detail.value === "number" ? detail.value.toFixed(4) : String(detail.value)}
+              </td>
+              <td>
+                <MetricStatusBadge status={detail.status} />
+              </td>
+              <td className="max-w-md text-gray-500">{detail.description}</td>
             </tr>
           ))}
         </tbody>
@@ -135,16 +143,17 @@ export function FairnessMetricsTable({
 export function BiasAlertPanel({ alerts }: { alerts: BiasAlert[] }) {
   if (!alerts.length) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <p className="text-sm text-green-800">No bias alerts detected. All clear.</p>
+      <div className="success-banner">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <p>No bias alerts detected. All clear.</p>
       </div>
     );
   }
 
   const severityColors: Record<string, string> = {
-    high: "border-red-200 bg-red-50",
-    medium: "border-yellow-200 bg-yellow-50",
-    low: "border-blue-200 bg-blue-50",
+    high: "border-red-200/80 bg-red-50/80",
+    medium: "border-amber-200/80 bg-amber-50/80",
+    low: "border-sky-200/80 bg-sky-50/80",
   };
   const severityIcons: Record<string, string> = {
     high: "\u26a0",
@@ -155,15 +164,22 @@ export function BiasAlertPanel({ alerts }: { alerts: BiasAlert[] }) {
   return (
     <div className="space-y-3">
       {alerts.map((alert, i) => (
-        <div key={i} className={`border rounded-lg p-4 ${severityColors[alert.severity] || "border-gray-200 bg-gray-50"}`}>
+        <div
+          key={i}
+          className={`rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-soft ${severityColors[alert.severity] || "border-gray-200 bg-gray-50"}`}
+        >
           <div className="flex items-start gap-3">
-            <span className="text-lg">{severityIcons[alert.severity] || "\u2139"}</span>
+            <span className="text-lg" aria-hidden="true">
+              {severityIcons[alert.severity] || "\u2139"}
+            </span>
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-semibold text-gray-900">{alert.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  {alert.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                </span>
                 <MetricStatusBadge status={alert.severity} />
               </div>
-              <p className="text-sm text-gray-700 mb-1">{alert.message}</p>
+              <p className="mb-1 text-sm text-gray-700">{alert.message}</p>
               <p className="text-xs text-gray-500">{alert.recommendation}</p>
             </div>
           </div>
@@ -185,15 +201,17 @@ export function DiversityStat({
   color?: string;
 }) {
   const colorMap: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-700 border-blue-200",
-    green: "bg-green-50 text-green-700 border-green-200",
-    purple: "bg-purple-50 text-purple-700 border-purple-200",
-    orange: "bg-orange-50 text-orange-700 border-orange-200",
+    blue: "bg-sky-50 text-sky-700 ring-sky-200/70",
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+    purple: "bg-violet-50 text-violet-700 ring-violet-200/70",
+    orange: "bg-orange-50 text-orange-700 ring-orange-200/70",
   };
   return (
-    <div className={`rounded-lg border p-3 ${colorMap[color] || colorMap.blue}`}>
-      <p className="text-xs font-medium opacity-75">{label}</p>
-      <p className="text-lg font-bold">{value}</p>
+    <div
+      className={`rounded-xl p-4 ring-1 ring-inset transition-shadow hover:shadow-soft ${colorMap[color] || colorMap.blue}`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-75">{label}</p>
+      <p className="mt-1 font-display text-lg font-bold">{value}</p>
     </div>
   );
 }
@@ -206,16 +224,16 @@ export function SeverityCounts({
   counts: Record<string, number>;
 }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {Object.entries(counts).map(([severity, count]) => (
         <span
           key={severity}
-          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
             severity === "high"
-              ? "bg-red-100 text-red-800"
+              ? "bg-red-50 text-red-700 ring-red-200/70"
               : severity === "medium"
-              ? "bg-yellow-100 text-yellow-800"
-              : "bg-blue-100 text-blue-800"
+                ? "bg-amber-50 text-amber-700 ring-amber-200/70"
+                : "bg-sky-50 text-sky-700 ring-sky-200/70"
           }`}
         >
           {severity}: {count}
@@ -244,13 +262,16 @@ export function FairnessProgressBar({
   return (
     <div>
       {label && (
-        <div className="flex justify-between mb-1">
+        <div className="mb-1.5 flex justify-between">
           <span className="text-sm font-medium text-gray-700">{label}</span>
-          <span className="text-sm font-medium text-gray-700">{Math.round(pct)}%</span>
+          <span className="text-sm font-semibold text-gray-700">{Math.round(pct)}%</span>
         </div>
       )}
-      <div className="w-full bg-gray-200 rounded-full h-2.5">
-        <div className="h-2.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200/70">
+        <div
+          className="h-full rounded-full transition-all duration-500 ease-smooth"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
+        />
       </div>
     </div>
   );
@@ -269,19 +290,22 @@ export function IssueList({
 }) {
   if (!items.length) return null;
   const bgColor: Record<string, string> = {
-    red: "bg-red-50 border-red-200",
-    yellow: "bg-yellow-50 border-yellow-200",
-    orange: "bg-orange-50 border-orange-200",
-    gray: "bg-gray-50 border-gray-200",
+    red: "bg-red-50/80 border-red-200/80",
+    yellow: "bg-amber-50/80 border-amber-200/80",
+    orange: "bg-orange-50/80 border-orange-200/80",
+    gray: "bg-gray-50/80 border-gray-200/80",
   };
   return (
-    <div className={`border rounded-lg p-4 ${bgColor[color] || bgColor.gray}`}>
-      <h4 className="text-sm font-semibold text-gray-900 mb-2">{title} ({items.length})</h4>
+    <div className={`rounded-xl border p-4 shadow-xs ${bgColor[color] || bgColor.gray}`}>
+      <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+        <AlertTriangle className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
+        {title} ({items.length})
+      </h4>
       <ul className="space-y-2">
         {items.map((item, i) => (
           <li key={i} className="text-sm">
             <span className="font-mono font-medium text-red-700">"{item.term}"</span>
-            <span className="text-gray-600 ml-2">- {item.suggestion}</span>
+            <span className="ml-2 text-gray-600">- {item.suggestion}</span>
           </li>
         ))}
       </ul>

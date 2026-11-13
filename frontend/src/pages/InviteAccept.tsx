@@ -6,6 +6,7 @@ import { Input } from "../components/ui/Input";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useAuth } from "../hooks/useAuth";
 import { getErrorMessage } from "../utils/error";
+import { formatDate } from "../utils/dateTime";
 import { getPasswordStrengthIssues, getPasswordStrengthLevel } from "../utils/validation";
 import * as authApi from "../api/auth";
 
@@ -113,7 +114,12 @@ export function InviteAccept() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_0%,rgba(85,87,230,0.10),transparent)]"
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-brand-gradient opacity-15 blur-3xl animate-float" aria-hidden="true" />
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -121,13 +127,34 @@ export function InviteAccept() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <div className="rounded-lg bg-green-50 p-6" role="status" aria-live="polite">
-            <h2 className="text-lg font-semibold text-green-800">Invitation Accepted!</h2>
-            <p className="mt-2 text-sm text-green-700">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_0%,rgba(85,87,230,0.10),transparent)]"
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-brand-gradient opacity-15 blur-3xl animate-float" aria-hidden="true" />
+
+        <div className="relative w-full max-w-md space-y-6 text-center animate-scale-in">
+          <div
+            className="rounded-2xl border border-emerald-200/80 bg-emerald-50/80 p-6 shadow-xs"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-emerald-800">Invitation Accepted!</h2>
+            <p className="mt-2 text-sm text-emerald-700">
               You are now a member of {invitation?.organization_name}.
             </p>
+            {invitation?.role && (
+              <p className="mt-2 text-sm text-emerald-700">
+                You've been onboarded as{" "}
+                <strong>{ROLE_LABELS[invitation.role] || invitation.role}</strong>.
+              </p>
+            )}
           </div>
           {!isAuthenticated && (
             <Link to="/login" className="inline-block">
@@ -144,9 +171,23 @@ export function InviteAccept() {
 
   if (!invitation?.valid) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <div className="rounded-lg bg-red-50 p-6" role="alert">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_0%,rgba(85,87,230,0.10),transparent)]"
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-brand-gradient opacity-15 blur-3xl animate-float" aria-hidden="true" />
+
+        <div className="relative w-full max-w-md space-y-6 text-center animate-scale-in">
+          <div
+            className="rounded-2xl border border-red-200/80 bg-red-50/80 p-6 shadow-xs"
+            role="alert"
+          >
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
             <h2 className="text-lg font-semibold text-red-800">Invalid Invitation</h2>
             <p className="mt-2 text-sm text-red-700">
               This invitation link is invalid, expired, revoked, or has already been used.
@@ -164,11 +205,23 @@ export function InviteAccept() {
   const signedInEmailMatches = isAuthenticated && emailsMatch(user?.email, invitation.email);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_0%,rgba(85,87,230,0.10),transparent)]"
+        aria-hidden="true"
+      />
+      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-brand-gradient opacity-15 blur-3xl animate-float" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 to-primary-400 opacity-15 blur-3xl animate-float [animation-delay:2.5s]" aria-hidden="true" />
+
+      <div className="relative z-10 w-full max-w-md space-y-6 animate-entrance">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Accept Invitation</h1>
-          <div className="mt-3 rounded-lg bg-blue-50 p-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow-sm">
+            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+          </div>
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-gray-900">Accept Invitation</h1>
+          <div className="panel-brand mt-4 p-4 text-left">
             <p className="text-sm text-blue-800">
               You've been invited to join <strong>{invitation.organization_name}</strong> as{" "}
               <strong>{ROLE_LABELS[invitation.role || ""] || invitation.role}</strong>
@@ -178,14 +231,14 @@ export function InviteAccept() {
             </p>
             {invitation.expires_at && (
               <p className="mt-1 text-xs text-blue-600">
-                Expires: {new Date(invitation.expires_at).toLocaleDateString()}
+                Expires: {formatDate(invitation.expires_at)}
               </p>
             )}
           </div>
         </div>
 
         {serverError && (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600" role="alert">
+          <div className="error-banner" role="alert">
             {serverError}
           </div>
         )}
@@ -193,7 +246,10 @@ export function InviteAccept() {
         {isExistingUserFlow ? (
           /* ── Existing-user flow ─────────────────────────────── */
           <div className="space-y-4">
-            <div className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800" role="status">
+            <div
+              className="rounded-xl border border-amber-200/80 bg-amber-50/80 p-4 text-sm text-amber-800 shadow-xs"
+              role="status"
+            >
               An account already exists for this email. Sign in with{" "}
               <strong>{invitation.email}</strong> to accept this invitation.
             </div>
@@ -208,7 +264,7 @@ export function InviteAccept() {
             )}
 
             {isAuthenticated && !signedInEmailMatches && (
-              <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700" role="alert">
+              <div className="error-banner" role="alert">
                 This invitation was sent to <strong>{invitation.email}</strong>, but you are
                 signed in as <strong>{user?.email}</strong>. Please sign in with the invited
                 email address.
@@ -228,8 +284,8 @@ export function InviteAccept() {
           </div>
         ) : (
           /* ── New-user flow ──────────────────────────────────── */
-          <form onSubmit={handleNewUserSubmit} className="space-y-4">
-            <p className="text-sm text-gray-600 text-center">Create your account</p>
+          <form onSubmit={handleNewUserSubmit} className="card space-y-4 p-7">
+            <p className="text-center text-sm font-medium text-gray-600">Create your account</p>
 
             <Input
               label="Email"
@@ -265,7 +321,7 @@ export function InviteAccept() {
             />
 
             {form.password.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex gap-1">
                   {(["weak", "fair", "strong"] as const).map((level) => {
                     const current = getPasswordStrengthLevel(form.password);
@@ -274,9 +330,9 @@ export function InviteAccept() {
                     return (
                       <div
                         key={level}
-                        className={`h-1 flex-1 rounded-full transition-colors ${
+                        className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
                           active
-                            ? level === "weak" ? "bg-red-500" : level === "fair" ? "bg-yellow-500" : "bg-green-500"
+                            ? level === "weak" ? "bg-red-500" : level === "fair" ? "bg-amber-400" : "bg-emerald-500"
                             : "bg-gray-200"
                         }`}
                       />

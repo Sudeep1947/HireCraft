@@ -17,11 +17,11 @@ const FILE_ICONS: Record<string, string> = {
   rtf: "\u{1F4C4}",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  uploaded: "bg-yellow-100 text-yellow-800",
-  processing: "bg-blue-100 text-blue-800",
-  parsed: "bg-green-100 text-green-800",
-  failed: "bg-red-100 text-red-800",
+const STATUS_BADGES: Record<string, string> = {
+  uploaded: "badge-warning",
+  processing: "badge-info",
+  parsed: "badge-success",
+  failed: "badge-danger",
 };
 
 function formatFileSize(bytes: number): string {
@@ -32,45 +32,48 @@ function formatFileSize(bytes: number): string {
 
 export function ResumeCard({ resume, onView, onDelete, onSetPrimary }: ResumeCardProps) {
   const icon = FILE_ICONS[resume.file_type] || "\u{1F4C4}";
-  const statusColor = STATUS_COLORS[resume.status] || "bg-gray-100 text-gray-800";
+  const statusBadge = STATUS_BADGES[resume.status] || "badge-neutral";
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm">
+    <div className="card card-hover flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
-        <span className="text-2xl">{icon}</span>
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-xl shadow-soft"
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-gray-900">
             {resume.original_filename}
             {resume.is_primary && (
-              <span className="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+              <span className="badge-primary ml-2 align-middle">
                 Primary
               </span>
             )}
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
             <span>{formatFileSize(resume.file_size)}</span>
-            <span className="text-gray-300">|</span>
+            <span className="text-gray-300" aria-hidden="true">|</span>
             <span>{resume.file_type.toUpperCase()}</span>
             {resume.language && (
               <>
-                <span className="text-gray-300">|</span>
+                <span className="text-gray-300" aria-hidden="true">|</span>
                 <span>{resume.language.toUpperCase()}</span>
               </>
             )}
-            <span className="text-gray-300">|</span>
+            <span className="text-gray-300" aria-hidden="true">|</span>
             <span>v{resume.version}</span>
-            <span className="text-gray-300">|</span>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor}`}>
-              {resume.status}
-            </span>
+            <span className="text-gray-300" aria-hidden="true">|</span>
+            <span className={statusBadge}>{resume.status}</span>
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1.5">
         {!resume.is_primary && resume.status === "parsed" && onSetPrimary && (
           <button
             onClick={() => onSetPrimary(resume.id)}
-            className="rounded px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50"
+            className="btn-ghost btn-sm text-primary-600 hover:text-primary-700"
           >
             Set Primary
           </button>
@@ -78,7 +81,7 @@ export function ResumeCard({ resume, onView, onDelete, onSetPrimary }: ResumeCar
         {onView && (
           <button
             onClick={() => onView(resume.id)}
-            className="rounded px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            className="btn-ghost btn-sm"
           >
             View
           </button>
@@ -86,7 +89,7 @@ export function ResumeCard({ resume, onView, onDelete, onSetPrimary }: ResumeCar
         {onDelete && (
           <button
             onClick={() => onDelete(resume.id)}
-            className="rounded px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+            className="btn-ghost btn-sm text-red-600 hover:bg-red-50 hover:text-red-700"
           >
             Delete
           </button>

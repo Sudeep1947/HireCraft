@@ -147,7 +147,7 @@ async def test_free_text_empty_rejected(client: AsyncClient):
         headers=_headers(tokens),
     )
     assert resp.status_code == 422
-    assert "No text" in resp.json()["detail"]
+    assert "No text" in resp.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -186,7 +186,7 @@ async def test_document_perception_unsupported_extension_rejected(client: AsyncC
         headers=_headers(tokens),
     )
     assert resp.status_code == 422
-    assert "Unsupported file type" in resp.json()["detail"]
+    assert "Unsupported file type" in resp.json()["error"]["message"]
 
 
 @pytest.mark.asyncio

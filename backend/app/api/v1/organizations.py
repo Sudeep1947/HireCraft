@@ -1,7 +1,9 @@
 """Organization management endpoints."""
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -10,7 +12,9 @@ from app.api.deps import (
     require_permission,
     RequireOrgMembership,
 )
+from app.core.config import get_settings
 from app.core.permissions import Permission
+from app.domain.enums import AuditEventType
 from app.domain.models import User
 from app.domain.schemas_organization import (
     InvitationCreate,
@@ -33,14 +37,27 @@ from app.repositories.organization import OrganizationRepository
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 
+def _build_accept_url(raw_token: str) -> str:
+    """The exact invite link delivered to the invitee (config-driven)."""
+    return get_settings().frontend_url(f"/invite/{raw_token}")
+
+
 # ── Organization CRUD ────────────────────────────────────────────────
 
 @router.post("", response_model=OrganizationResponse, status_code=201)
 async def create_organization(
     body: OrganizationCreate,
-    current_user: User = Depends(get_current_user),
+    request: Request,
+    current_user: User = Depends(
+        require_permission(Permission.PLATFORM_ORG_MANAGE, strict_auth=True)
+    ),
     db: AsyncSession = Depends(get_db),
 ):
+    """Create an organization. Platform super admin only.
+
+    The creator is added as the organization's first ``organization_admin``;
+    no other memberships, invitations, or global privileges are granted.
+    """
     svc = OrganizationService(db)
     org = await svc.create_organization(
         name=body.name,
@@ -49,10 +66,89 @@ async def create_organization(
         description=body.description,
         official_email=body.official_email,
         domain=body.domain,
+        logo_url=body.logo_url,
+        industry=body.industry,
+        website=body.website,
+        location=body.location,
+        status=body.status,
     )
+
+    request_id = getattr(request.state, "request_id", None)
+    client = request.client
     audit = AuditService(db)
-    await audit.log("organization_created", "org_create", user_id=current_user.id, details={"org_id": str(org.id), "slug": body.slug})
+    await audit.log(
+        AuditEventType.ORGANIZATION_CREATED,
+        "organization_create",
+        user_id=current_user.id,
+        organization_id=org.id,
+        resource_type="organization",
+        resource_id=str(org.id),
+        details={
+            "request_id": request_id,
+            "organization_name": org.name,
+            "organization_slug": org.slug,
+            "actor_roles": sorted({ur.role.name for ur in current_user.roles}),
+        },
+        ip_address=client.host if client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
     return org
+
+
+UPLOAD_ORG_LOGOS_DIR = Path("uploads/organizations")
+UPLOAD_ORG_LOGOS_DIR.mkdir(parents=True, exist_ok=True)
+ALLOWED_LOGO_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".svg"}
+ALLOWED_LOGO_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/svg+xml"}
+MAX_LOGO_SIZE = 5 * 1024 * 1024
+
+
+@router.post("/logo")
+async def upload_organization_logo(
+    file: UploadFile = File(...),
+    current_user: User = Depends(
+        require_permission(Permission.PLATFORM_ORG_MANAGE, strict_auth=True)
+    ),
+):
+    """Securely upload an organization logo. Platform admin only."""
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_LOGO_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed extensions: {', '.join(sorted(ALLOWED_LOGO_EXTENSIONS))}",
+        )
+    if file.content_type and file.content_type.lower() not in ALLOWED_LOGO_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid content type {file.content_type}. Must be a valid image.",
+        )
+
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(contents) > MAX_LOGO_SIZE:
+        raise HTTPException(status_code=400, detail="File size exceeds 5 MB limit.")
+
+    # Rejection of executable code / magic byte inspection
+    if contents.startswith(b"MZ") or contents.startswith(b"\x7fELF") or b"<?php" in contents[:512]:
+        raise HTTPException(status_code=400, detail="Invalid image content.")
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = UPLOAD_ORG_LOGOS_DIR / filename
+    filepath.write_bytes(contents)
+    logo_url = f"/uploads/organizations/{filename}"
+    return {"logo_url": logo_url}
+
+
+@router.get("", response_model=list[OrganizationResponse])
+async def list_all_organizations(
+    current_user: User = Depends(
+        require_permission(Permission.PLATFORM_ORG_MANAGE, strict_auth=True)
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all organizations. Platform super admin only."""
+    svc = OrganizationService(db)
+    return await svc.list_all_organizations()
 
 
 @router.get("/{organization_id}", response_model=OrganizationResponse)
@@ -93,6 +189,10 @@ async def list_my_organizations(
     db: AsyncSession = Depends(get_db),
 ):
     svc = OrganizationService(db)
+    user_role_names = {ur.role.name for ur in current_user.roles}
+    if "super_admin" in user_role_names:
+        return await svc.list_all_organizations()
+
     memberships = await svc.get_user_memberships(current_user.id)
     org_ids = [m.organization_id for m in memberships]
     org_repo = OrganizationRepository(db)
@@ -196,6 +296,7 @@ async def create_invitation(
         created_at=invitation.created_at,
         accepted_at=invitation.accepted_at,
         email_status=_email_result.get("status", "unknown"),
+        accept_url=_build_accept_url(raw_token),
     )
 
 
@@ -269,4 +370,5 @@ async def resend_invitation(
         created_at=invitation.created_at,
         accepted_at=invitation.accepted_at,
         email_status=_email_result.get("status", "unknown"),
+        accept_url=_build_accept_url(raw_token),
     )

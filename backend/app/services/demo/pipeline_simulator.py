@@ -443,7 +443,7 @@ class PipelineSimulator:
     async def create_application(
         self, job, candidate: User, resume: object | None,
     ) -> JobApplication:
-        return await self.application_repo.create(
+        app = await self.application_repo.create(
             job_id=job.id,
             candidate_id=candidate.id,
             resume_id=resume.id if resume else None,
@@ -451,6 +451,10 @@ class PipelineSimulator:
                          "and skills are a strong match for the team.",
             status=ApplicationStatus.APPLIED.value,
         )
+        await self.job_service.lifecycle_service.record_creation(
+            app, actor=candidate,
+        )
+        return app
 
     # ─── Screening ───────────────────────────────────────────────────
 
@@ -614,6 +618,7 @@ class PipelineSimulator:
             "rejected": 0,
         }
         transitions: list[dict] = []
+        actor = await self.user_repo.get(job.recruiter_id)
 
         for idx, entry in enumerate(ranked):
             app: JobApplication = entry["app"]
@@ -621,6 +626,7 @@ class PipelineSimulator:
             score = _score(cid)
             had_interview = cid in interview_scores
             path: list[str] = []
+            target = ApplicationStatus.APPLIED.value
 
             if idx < shortlist_size or had_interview:
                 counts["shortlisted"] += 1
@@ -634,11 +640,11 @@ class PipelineSimulator:
                         path.append("offered")
                         counts["hired"] += 1
                         path.append("hired")
-                        app.status = ApplicationStatus.HIRED.value
+                        target = ApplicationStatus.HIRED.value
                     else:
                         counts["rejected"] += 1
                         path.append("rejected")
-                        app.status = ApplicationStatus.REJECTED.value
+                        target = ApplicationStatus.REJECTED.value
                 else:
                     # Strong screen but no interview slot: offer by rate.
                     if rng.random() < preset["offer_rate_for_unscored_top"]:
@@ -646,26 +652,73 @@ class PipelineSimulator:
                         path.append("offered")
                         counts["hired"] += 1
                         path.append("hired")
-                        app.status = ApplicationStatus.HIRED.value
+                        target = ApplicationStatus.HIRED.value
                     else:
-                        app.status = ApplicationStatus.UNDER_REVIEW.value
+                        target = ApplicationStatus.UNDER_REVIEW.value
             else:
                 if rng.random() < preset["rejection_rate_tail"]:
                     counts["rejected"] += 1
                     path.append("rejected")
-                    app.status = ApplicationStatus.REJECTED.value
+                    target = ApplicationStatus.REJECTED.value
                 else:
-                    app.status = ApplicationStatus.APPLIED.value
+                    target = ApplicationStatus.APPLIED.value
                     path.append("kept_in_pipeline")
+
+            if actor is None:
+                raise ValueError(
+                    f"Recruiter {job.recruiter_id} missing for demo job {job.id}"
+                )
+            await self._advance_via_lifecycle(app, actor, target, had_interview)
 
             transitions.append({
                 "application_id": str(app.id),
                 "candidate_id": str(cid),
                 "from": ApplicationStatus.APPLIED.value,
-                "to": app.status,
+                "to": target,
                 "path": path,
                 "score": round(score, 2),
             })
 
         await self.session.flush()
         return {"counts": counts, "transitions": transitions}
+
+    async def _advance_via_lifecycle(
+        self, app: JobApplication, actor: User, target: str, had_interview: bool,
+    ) -> None:
+        """Walk an application to ``target`` through the legal lifecycle funnel.
+
+        Demo decisions must obey the same transition rules as real users: the
+        demo may never write a status directly or skip the funnel. All demo
+        applications start at ``applied``.
+        """
+        if target == ApplicationStatus.APPLIED.value:
+            return
+        if target == ApplicationStatus.UNDER_REVIEW.value:
+            route = [ApplicationStatus.UNDER_REVIEW.value]
+        elif target == ApplicationStatus.REJECTED.value:
+            route = (
+                [
+                    ApplicationStatus.SHORTLISTED.value,
+                    ApplicationStatus.INTERVIEW_SCHEDULED.value,
+                    ApplicationStatus.REJECTED.value,
+                ]
+                if had_interview
+                else [ApplicationStatus.REJECTED.value]
+            )
+        elif target == ApplicationStatus.HIRED.value:
+            route = [
+                ApplicationStatus.SHORTLISTED.value,
+                ApplicationStatus.OFFERED.value,
+                ApplicationStatus.HIRED.value,
+            ]
+            if had_interview:
+                route.insert(1, ApplicationStatus.INTERVIEW_SCHEDULED.value)
+        else:
+            route = [target]
+
+        lifecycle = self.job_service.lifecycle_service
+        for step in route:
+            await lifecycle.transition_application(
+                app.id, step, actor, reason="demo_pipeline",
+            )
+            await self.session.refresh(app)

@@ -77,6 +77,7 @@ class _GraphRuntime:
         return state
 
     async def node_profile(self, state: PipelineState) -> PipelineState:
+        from app.skill2job.adapters.candidate_adapter import CandidateAdapter
         from app.skill2job.profile.agent import ProfileAgent
 
         started = time.monotonic()
@@ -84,7 +85,11 @@ class _GraphRuntime:
         try:
             dossier = await ProfileAgent(self.session, CandidateAdapter(self.session)).build_dossier(uid)
             skill_count = dossier.skill_count
-            completeness = dossier.completeness.overall_percentage
+            completeness = getattr(
+                dossier.completeness,
+                "overall_percentage",
+                getattr(dossier.completeness, "score", 0),
+            )
             summary = {
                 "skill_count": skill_count,
                 "completeness": completeness,
@@ -181,50 +186,72 @@ class _GraphRuntime:
 
 
 def build_graph(runtime: _GraphRuntime):
-    from langgraph.graph import END, START, StateGraph
+    try:
+        from langgraph.graph import END, START, StateGraph
 
-    graph = StateGraph(PipelineState)
+        graph = StateGraph(PipelineState)
 
-    graph.add_node("gather", runtime.node_gather)
-    graph.add_node("profile", runtime.node_profile)
-    graph.add_node("jobs", runtime.node_jobs)
-    graph.add_node("match", runtime.node_match)
-    graph.add_node("gap", runtime.node_gap)
-    graph.add_node("plan", runtime.node_plan)
+        graph.add_node("gather", runtime.node_gather)
+        graph.add_node("profile", runtime.node_profile)
+        graph.add_node("jobs", runtime.node_jobs)
+        graph.add_node("match", runtime.node_match)
+        graph.add_node("gap", runtime.node_gap)
+        graph.add_node("plan", runtime.node_plan)
 
-    graph.add_edge(START, "gather")
-    graph.add_edge("gather", "profile")
-    graph.add_edge("profile", "jobs")
+        graph.add_edge(START, "gather")
+        graph.add_edge("gather", "profile")
+        graph.add_edge("profile", "jobs")
 
-    graph.add_conditional_edges(
-        "jobs",
-        runtime.should_run_match,
-        {
-            "match": "match",
-            "skip": END,
-        },
-    )
+        graph.add_conditional_edges(
+            "jobs",
+            runtime.should_run_match,
+            {
+                "match": "match",
+                "skip": END,
+            },
+        )
 
-    graph.add_conditional_edges(
-        "match",
-        runtime.should_run_gap,
-        {
-            "gap": "gap",
-            "skip": END,
-        },
-    )
+        graph.add_conditional_edges(
+            "match",
+            runtime.should_run_gap,
+            {
+                "gap": "gap",
+                "skip": END,
+            },
+        )
 
-    graph.add_conditional_edges(
-        "gap",
-        runtime.should_run_plan,
-        {
-            "plan": "plan",
-            "skip": END,
-        },
-    )
+        graph.add_conditional_edges(
+            "gap",
+            runtime.should_run_plan,
+            {
+                "plan": "plan",
+                "skip": END,
+            },
+        )
 
-    graph.add_edge("plan", END)
-    return graph.compile()
+        graph.add_edge("plan", END)
+        return graph.compile()
+    except ImportError:
+        class _CompiledGraphFallback:
+            def __init__(self, r: _GraphRuntime) -> None:
+                self.runtime = r
+
+            async def ainvoke(self, state: PipelineState) -> PipelineState:
+                state = await self.runtime.node_gather(state)
+                state = await self.runtime.node_profile(state)
+                state = await self.runtime.node_jobs(state)
+                if self.runtime.should_run_match(state) == "skip":
+                    return state
+                state = await self.runtime.node_match(state)
+                if self.runtime.should_run_gap(state) == "skip":
+                    return state
+                state = await self.runtime.node_gap(state)
+                if self.runtime.should_run_plan(state) == "skip":
+                    return state
+                state = await self.runtime.node_plan(state)
+                return state
+
+        return _CompiledGraphFallback(runtime)
 
 
 class PipelineOrchestrator:
@@ -269,16 +296,15 @@ class PipelineOrchestrator:
             "final": trace["final"],
         }
 
-    async def get_trace(self, user_id: uuid.UUID, run_id: str) -> dict | None:
+    async def get_trace(self, user_id: uuid.UUID, run_id: str, is_admin: bool = False) -> dict | None:
         from sqlalchemy import select
 
+        stmt = select(Skill2JobExecutionTrace).where(Skill2JobExecutionTrace.run_id == run_id)
+        if not is_admin:
+            stmt = stmt.where(Skill2JobExecutionTrace.user_id == user_id)
+
         row = (
-            await self.session.execute(
-                select(Skill2JobExecutionTrace).where(
-                    Skill2JobExecutionTrace.user_id == user_id,
-                    Skill2JobExecutionTrace.run_id == run_id,
-                )
-            )
+            await self.session.execute(stmt)
         ).scalars().first()
         if row is None:
             return None
@@ -288,16 +314,16 @@ class PipelineOrchestrator:
             "created_at": row.created_at.isoformat() if row.created_at else None,
         }
 
-    async def list_traces(self, user_id: uuid.UUID, limit: int = 10) -> dict:
+    async def list_traces(self, user_id: uuid.UUID, limit: int = 10, is_admin: bool = False) -> dict:
         from sqlalchemy import select
 
+        stmt = select(Skill2JobExecutionTrace)
+        if not is_admin:
+            stmt = stmt.where(Skill2JobExecutionTrace.user_id == user_id)
+        stmt = stmt.order_by(Skill2JobExecutionTrace.created_at.desc()).limit(limit)
+
         rows = (
-            await self.session.execute(
-                select(Skill2JobExecutionTrace)
-                .where(Skill2JobExecutionTrace.user_id == user_id)
-                .order_by(Skill2JobExecutionTrace.created_at.desc())
-                .limit(limit)
-            )
+            await self.session.execute(stmt)
         ).scalars().all()
         return {
             "items": [

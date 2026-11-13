@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { ArrowRight, GraduationCap } from "lucide-react";
 import { skill2jobApi } from "../../../api/skill2job";
 import type { TrainingModule, TrainingPlan, TrainingProgress } from "../../../types/skill2job";
@@ -34,36 +34,36 @@ export function LearningSection() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-gray-200 bg-white p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="max-w-2xl">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <GraduationCap className="h-5 w-5 text-primary-600" aria-hidden="true" />
-              Training Plan
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              A grounded learning plan built only from official provider resources that target your
-              real skill gaps. Mark modules complete to track your progress.
-            </p>
-          </div>
+      <section className="card p-6">
+        <div className="max-w-2xl">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+            <span className="rounded-xl bg-primary-50 p-2.5 text-primary-600">
+              <GraduationCap className="h-5 w-5" aria-hidden="true" />
+            </span>
+            Training Plan
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            A grounded learning plan built only from official provider resources that target your
+            real skill gaps. Mark modules complete to track your progress.
+          </p>
         </div>
       </section>
 
       {plan && plan.modules.length > 0 && (
-        <section className="rounded-2xl border border-gray-200 bg-white p-6">
+        <section className="card p-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-gray-900">Learning Modules</h3>
-            <span className="text-xs text-gray-400">{plan.version}</span>
+            <span className="badge badge-neutral">{plan.version}</span>
           </div>
           <ul className="mt-4 divide-y divide-gray-100">
             {plan.modules.map((m) => {
               const done = completedKeys.has(m.module_key);
               return (
-                <li key={m.module_key} className="flex items-center justify-between gap-4 py-3">
+                <li key={m.module_key} className="flex items-center justify-between gap-4 py-3 transition-colors hover:bg-gray-50/60">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-gray-900">
                       {m.title}
-                      {done && <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">done</span>}
+                      {done && <span className="badge badge-success ml-2">done</span>}
                     </p>
                     <p className="text-xs text-gray-500">
                       {m.skill} · {m.provider} · {m.resource_type}
@@ -75,7 +75,7 @@ export function LearningSection() {
                         href={m.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                        className="btn-secondary btn-sm inline-flex items-center gap-1"
                       >
                         Open resource <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </a>
@@ -84,7 +84,7 @@ export function LearningSection() {
                       <button
                         type="button"
                         onClick={() => complete(m)}
-                        className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
+                        className="btn-primary btn-sm"
                       >
                         Mark complete
                       </button>
@@ -98,9 +98,10 @@ export function LearningSection() {
       )}
 
       {plan && plan.modules.length === 0 && (
-        <section className="rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+        <div className="empty-state">
+          <GraduationCap className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
           <p className="text-sm text-gray-500">No training plan yet — run the pipeline or matching to surface skill gaps.</p>
-        </section>
+        </div>
       )}
     </div>
   );

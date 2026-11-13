@@ -4,20 +4,20 @@ import type {
 } from "../../types/simulations";
 
 const KIND_STYLES: Record<FieldChangeKind, { badge: string; arrow: string }> = {
-  unchanged: { badge: "bg-gray-100 text-gray-500", arrow: "=" },
-  increased: { badge: "bg-green-100 text-green-700", arrow: "\u2191" },
-  decreased: { badge: "bg-red-100 text-red-700", arrow: "\u2193" },
-  added: { badge: "bg-green-100 text-green-700", arrow: "+" },
-  removed: { badge: "bg-red-100 text-red-700", arrow: "\u2212" },
-  changed: { badge: "bg-amber-100 text-amber-700", arrow: "~" },
+  unchanged: { badge: "badge-neutral", arrow: "=" },
+  increased: { badge: "badge-success", arrow: "\u2191" },
+  decreased: { badge: "badge-danger", arrow: "\u2193" },
+  added: { badge: "badge-success", arrow: "+" },
+  removed: { badge: "badge-danger", arrow: "\u2212" },
+  changed: { badge: "badge-warning", arrow: "~" },
 };
 
 function ChangeBadge({ change }: { change: FieldChangeKind }) {
   const style = KIND_STYLES[change] ?? KIND_STYLES.unchanged;
   if (change === "unchanged") return null;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${style.badge}`}>
-      <span>{style.arrow}</span>
+    <span className={style.badge}>
+      <span aria-hidden="true">{style.arrow}</span>
       {change}
     </span>
   );
@@ -31,7 +31,7 @@ function SkillChips({ skills, tone }: { skills: string[]; tone: "added" | "remov
         <span
           key={skill}
           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-            tone === "added" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+            tone === "added" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
           }`}
         >
           <span className="font-bold">{tone === "added" ? "+" : "\u2212"}</span>
@@ -54,48 +54,46 @@ export function ChangesSection({ changes, title = "Review changes" }: ChangesSec
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-          <p className="mt-0.5 text-xs text-gray-500">
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
+          <p className="mt-0.5 text-xs text-ink-muted">
             Baseline vs proposed simulation configuration (config v{changes.config_version})
           </p>
         </div>
         {changes.total_changes > 0 ? (
-          <span className="inline-flex rounded-full bg-primary-100 px-2.5 py-1 text-xs font-semibold text-primary-700">
+          <span className="badge-primary">
             {changes.total_changes} change{changes.total_changes === 1 ? "" : "s"}
           </span>
         ) : (
-          <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
-            No changes
-          </span>
+          <span className="badge-success">No changes</span>
         )}
       </div>
 
       {changes.total_changes === 0 ? (
-        <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <p className="success-banner">
           The proposed configuration matches the baseline. Adjust the settings to create a
           &quot;what-if&quot; scenario.
         </p>
       ) : (
         <div className="space-y-3">
-          <div className="overflow-hidden rounded-lg border border-gray-200">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-2">Setting</th>
-                  <th className="px-4 py-2">Baseline</th>
-                  <th className="px-4 py-2">Scenario</th>
-                  <th className="px-4 py-2 text-right">Change</th>
+                  <th>Setting</th>
+                  <th>Baseline</th>
+                  <th>Scenario</th>
+                  <th className="text-right">Change</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
+              <tbody>
                 {changedFields.map((field) => (
                   <tr key={field.key}>
-                    <td className="px-4 py-2 font-medium text-gray-900">{field.label}</td>
-                    <td className="px-4 py-2 text-gray-600">
+                    <td className="font-medium text-ink">{field.label}</td>
+                    <td>
                       {formatValue(field.key, field.baseline)}
                     </td>
-                    <td className="px-4 py-2 text-gray-900">{formatValue(field.key, field.scenario)}</td>
-                    <td className="px-4 py-2 text-right">
+                    <td className="font-medium text-ink">{formatValue(field.key, field.scenario)}</td>
+                    <td className="text-right">
                       <ChangeBadge change={field.change} />
                     </td>
                   </tr>
@@ -110,13 +108,13 @@ export function ChangesSection({ changes, title = "Review changes" }: ChangesSec
             changes.skills.preferred_added.length > 0 ||
             changes.skills.mandatory_removed.length > 0 ||
             changes.skills.preferred_removed.length > 0) && (
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="card p-4">
+              <h4 className="section-label">
                 Skill requirements
               </h4>
               <div className="mt-3 space-y-3">
                 <div>
-                  <p className="mb-1 text-xs font-medium text-gray-500">Added</p>
+                  <p className="mb-1 text-xs font-medium text-ink-muted">Added</p>
                   {changes.skills.mandatory_added.length ||
                   changes.skills.preferred_added.length ? (
                     <SkillChips
@@ -124,11 +122,11 @@ export function ChangesSection({ changes, title = "Review changes" }: ChangesSec
                       tone="added"
                     />
                   ) : (
-                    <p className="text-xs text-gray-400">None</p>
+                    <p className="text-xs text-ink-subtle">None</p>
                   )}
                 </div>
                 <div>
-                  <p className="mb-1 text-xs font-medium text-gray-500">Removed</p>
+                  <p className="mb-1 text-xs font-medium text-ink-muted">Removed</p>
                   {changes.skills.mandatory_removed.length ||
                   changes.skills.preferred_removed.length ? (
                     <SkillChips
@@ -139,12 +137,12 @@ export function ChangesSection({ changes, title = "Review changes" }: ChangesSec
                       tone="removed"
                     />
                   ) : (
-                    <p className="text-xs text-gray-400">None</p>
+                    <p className="text-xs text-ink-subtle">None</p>
                   )}
                 </div>
                 {changes.skills.moved.length > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-medium text-gray-500">Moved</p>
+                    <p className="mb-1 text-xs font-medium text-ink-muted">Moved</p>
                     <div className="flex flex-wrap gap-1.5">
                       {changes.skills.moved.map((move) => (
                         <span

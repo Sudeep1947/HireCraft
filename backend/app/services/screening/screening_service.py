@@ -131,10 +131,16 @@ class ScreeningService:
         recommendation = MatchingEngine.determine_recommendation(overall)
         strength_level = MatchingEngine.determine_strength_level(overall)
 
+        # Resolve the application (unique on job+candidate) so the persisted
+        # screening result is explicitly linked to it when one exists.
+        application = await self.app_repo.get_by_job_and_candidate(job.id, candidate_id)
+        application_id = application.id if application else None
+
         existing = await self.screening_repo.get_by_job_and_candidate(job.id, candidate_id)
         if existing:
             screening = await self.screening_repo.update(
                 existing.id,
+                application_id=application_id,
                 overall_match_score=overall,
                 skill_match_score=skill_score,
                 experience_match_score=exp_score,
@@ -157,6 +163,7 @@ class ScreeningService:
             screening = await self.screening_repo.create(
                 job_id=job.id,
                 candidate_id=candidate_id,
+                application_id=application_id,
                 resume_id=resume.id if resume else None,
                 overall_match_score=overall,
                 skill_match_score=skill_score,

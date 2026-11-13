@@ -217,7 +217,7 @@ async def test_register_duplicate_email_409(client: AsyncClient, auth_service):
         },
     )
     assert resp.status_code == 409
-    assert "already registered" in resp.json()["detail"]
+    assert "already registered" in resp.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -273,7 +273,7 @@ async def test_login_wrong_password(client: AsyncClient, auth_service):
         json={"email": "wrong_pw@example.com", "password": "WrongP@ss1"},
     )
     assert resp.status_code == 401
-    assert "Invalid email or password" in resp.json()["detail"]
+    assert "Invalid email or password" in resp.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -283,7 +283,7 @@ async def test_login_nonexistent_user(client: AsyncClient):
         json={"email": "ghost@example.com", "password": "SecureP@ss1"},
     )
     assert resp.status_code == 401
-    assert "Invalid email or password" in resp.json()["detail"]
+    assert "Invalid email or password" in resp.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -576,7 +576,7 @@ async def test_login_error_message_not_generic(client: AsyncClient):
         json={"email": "nobody@example.com", "password": "whatever"},
     )
     assert resp.status_code == 401
-    detail = resp.json()["detail"]
+    detail = resp.json()["error"]["message"]
     assert "500" not in detail
     assert "Internal" not in detail
 
@@ -593,7 +593,7 @@ async def test_register_error_message_for_duplicate(client: AsyncClient, auth_se
         },
     )
     assert resp.status_code == 409
-    assert "already registered" in resp.json()["detail"].lower()
+    assert "already registered" in resp.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio
@@ -608,8 +608,9 @@ async def test_register_weak_password_error_includes_requirements(client: AsyncC
     )
     assert resp.status_code == 422
     body = resp.json()
-    assert "detail" in body
-    assert "Password" in body["detail"] or "password" in body["detail"]
+    assert "error" in body
+    msg = body["error"].get("message", "")
+    assert "Password" in msg or "password" in msg
 
 
 # ═══════════════════════════════════════════════════════════════════

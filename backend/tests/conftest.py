@@ -138,9 +138,11 @@ def _block_external_services(monkeypatch):
 
     import app.notifications.email_tasks as email_tasks_mod
     import app.services.email_service as email_service_mod
+    import app.services.applications.screening_scheduler as screening_scheduler_mod
     import app.services.simulation.scheduler as simulation_scheduler_mod
 
     monkeypatch.setattr(email_service_mod.smtplib, "SMTP", MagicMock(name="SMTPMock"))
     monkeypatch.setattr(email_tasks_mod, "_celery_available", lambda: False)
+    monkeypatch.setattr(screening_scheduler_mod, "_celery_available", lambda: False)
     monkeypatch.setattr(simulation_scheduler_mod, "_celery_available", lambda: False)
     yield

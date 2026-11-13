@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { Button } from "../../components/ui/Button";
 import { StatCard } from "../../components/dashboard/StatCard";
 import { EmptySimulationState } from "../../components/simulations/EmptySimulationState";
@@ -53,23 +52,50 @@ export function SimulationDashboard() {
     }
   }
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-fade-up">
+        <div className="skeleton h-8 w-64" />
+        <div className="skeleton h-4 w-96 max-w-full" />
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="skeleton h-24 w-full" />
+          ))}
+        </div>
+        <div className="skeleton h-64 w-full" />
+      </div>
+    );
+  }
 
   const stats = data?.stats;
   const items = data?.items ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Simulation Intelligence</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="page-title">Simulation Intelligence</h1>
+          <p className="page-subtitle">
             Build hiring-strategy sandboxes to test &quot;what-if&quot; screening configurations
           </p>
         </div>
-        <Button onClick={() => navigate("/recruiter/simulations/create")}>
-          New Simulation
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/simulations/reports")}
+          >
+            View Reports
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/simulations/research")}
+          >
+            Research
+          </Button>
+          <Button onClick={() => navigate("/recruiter/simulations/create")}>
+            New Simulation
+          </Button>
+        </div>
       </div>
 
       {stats && (
@@ -105,34 +131,34 @@ export function SimulationDashboard() {
           />
         )
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th>
                   Simulation
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th>
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th>
                   Created by
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th>
                   Created
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="text-right">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {items.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-6 py-4">
+                <tr key={item.id}>
+                  <td className="whitespace-nowrap">
                     <button
                       onClick={() => navigate(`/recruiter/simulations/${item.id}`)}
-                      className="text-sm font-medium text-gray-900 hover:text-primary-600"
+                      className="text-sm font-medium text-gray-900 transition-colors duration-200 hover:text-primary-600"
                     >
                       {item.name}
                     </button>
@@ -140,27 +166,27 @@ export function SimulationDashboard() {
                       {item.job_title} · {item.company}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4">
+                  <td className="whitespace-nowrap">
                     <ScenarioStatusBadge status={item.status} />
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                  <td className="whitespace-nowrap text-gray-500">
                     {item.created_by_name}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                  <td className="whitespace-nowrap text-gray-500">
                     {new Date(item.created_at).toLocaleDateString()}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
+                  <td className="whitespace-nowrap text-right text-sm">
                     <div className="flex items-center justify-end gap-3">
                       <button
                         onClick={() => navigate(`/recruiter/simulations/${item.id}`)}
-                        className="text-primary-600 hover:text-primary-900"
+                        className="font-medium text-primary-600 transition-colors duration-200 hover:text-primary-700"
                       >
                         View
                       </button>
                       {isSimulationEditable(item.status) && (
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="font-medium text-red-600 transition-colors duration-200 hover:text-red-700"
                         >
                           Delete
                         </button>

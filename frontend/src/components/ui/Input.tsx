@@ -9,22 +9,22 @@ export function Input({ label, error, className = "", id, ...props }: InputProps
   const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+        <label htmlFor={inputId} className="field-label">
           {label}
         </label>
       )}
       <input
         id={inputId}
-        className={`block w-full rounded-lg border px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+        className={`block w-full rounded-xl border bg-white/80 px-3.5 py-2.5 text-sm text-ink shadow-soft transition-all duration-200 placeholder:text-ink-subtle focus:outline-none focus:ring-2 focus:border-primary-400 ${
           error
-            ? "border-red-300 focus:border-red-400 focus:ring-red-500"
-            : "border-gray-300 focus:border-primary-400"
+            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-400/40"
+            : "border-slate-200 focus:ring-primary-400/40"
         } ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs font-medium text-rose-600">{error}</p>}
     </div>
   );
 }

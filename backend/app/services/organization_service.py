@@ -1,7 +1,9 @@
 """Organization and membership management service."""
+import re
 import uuid
 from datetime import datetime, timezone
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
@@ -15,6 +17,11 @@ logger = get_logger(__name__)
 
 VALID_INVITATION_ROLES = {RoleName.HR_MANAGER.value, RoleName.RECRUITER.value}
 
+# Lowercase alphanumerics separated by single hyphens: no leading/trailing or
+# doubled hyphens. The API schema enforces the same rule so direct service
+# callers cannot bypass it.
+SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
 
 class OrganizationService:
     def __init__(self, session: AsyncSession) -> None:
@@ -25,41 +32,106 @@ class OrganizationService:
     async def create_organization(
         self,
         name: str,
-        slug: str,
-        creator_id: uuid.UUID,
+        slug: str | None = None,
+        creator_id: uuid.UUID | None = None,
         description: str | None = None,
         official_email: str | None = None,
         domain: str | None = None,
+        logo_url: str | None = None,
+        industry: str | None = None,
+        website: str | None = None,
+        location: str | None = None,
+        status: str = OrganizationStatus.ACTIVE.value,
     ) -> Organization:
-        existing = await self._org_repo.get_by_slug(slug)
+        normalized_name = (name or "").strip()
+
+        if not normalized_name:
+            raise ValidationError(detail="Organization name must not be empty")
+        if len(normalized_name) > 255:
+            raise ValidationError(detail="Organization name must be at most 255 characters")
+
+        existing_name = await self._org_repo.get_by_name(normalized_name)
+        if existing_name:
+            raise ConflictError(detail="Organization with this name already exists")
+
+        if slug is not None:
+            normalized_slug = slug.strip()
+            if not normalized_slug:
+                raise ValidationError(detail="Organization slug must not be empty")
+            if len(normalized_slug) > 100:
+                raise ValidationError(detail="Organization slug must be at most 100 characters")
+            if not SLUG_PATTERN.fullmatch(normalized_slug):
+                raise ValidationError(
+                    detail=(
+                        "Slug must contain only lowercase letters, numbers, and single "
+                        "hyphens, with no leading or trailing hyphen"
+                    )
+                )
+        else:
+            base_slug = re.sub(r"[^a-z0-9]+", "-", normalized_name.lower()).strip("-")
+            normalized_slug = (base_slug or "org")[:100]
+
+        existing = await self._org_repo.get_by_slug(normalized_slug)
         if existing:
             raise ConflictError(detail="Organization with this slug already exists")
 
-        import re
-        if not re.match(r"^[a-z0-9][a-z0-9\-]*$", slug):
-            raise ValidationError(detail="Slug must contain only lowercase letters, numbers, and hyphens")
+        normalized_description = description.strip() if description else None
+        normalized_email = official_email.strip() if official_email else None
+        normalized_domain = domain.strip() if domain else None
+        normalized_logo_url = logo_url.strip() if logo_url else None
+        normalized_industry = industry.strip() if industry else None
+        normalized_website = website.strip() if website else None
+        normalized_location = location.strip() if location else None
+        org_status = (status or OrganizationStatus.ACTIVE.value).strip().lower()
+        if org_status not in {OrganizationStatus.ACTIVE.value, OrganizationStatus.INACTIVE.value}:
+            org_status = OrganizationStatus.ACTIVE.value
 
-        org = await self._org_repo.create(
-            name=name,
-            slug=slug,
-            description=description,
-            official_email=official_email,
-            domain=domain,
-            status=OrganizationStatus.ACTIVE.value,
+        try:
+            # A savepoint keeps the organization and its creator membership
+            # atomic. If either insert fails, neither row survives.
+            async with self._session.begin_nested():
+                org = await self._org_repo.create(
+                    name=normalized_name,
+                    slug=normalized_slug,
+                    description=normalized_description or None,
+                    official_email=normalized_email or None,
+                    domain=normalized_domain or None,
+                    logo_url=normalized_logo_url or None,
+                    industry=normalized_industry or None,
+                    website=normalized_website or None,
+                    location=normalized_location or None,
+                    status=org_status,
+                )
+
+                if creator_id is not None:
+                    membership = OrganizationMembership(
+                        user_id=creator_id,
+                        organization_id=org.id,
+                        role=RoleName.ORG_ADMIN.value,
+                        status=MembershipStatus.ACTIVE.value,
+                        joined_at=datetime.now(timezone.utc),
+                    )
+                    self._session.add(membership)
+                await self._session.flush()
+        except IntegrityError:
+            # Two admins can pass the pre-check concurrently; the database
+            # unique constraint is the real arbiter. Report it as a conflict
+            # rather than leaking a 500.
+            raise ConflictError(detail="Organization with this name or slug already exists")
+
+        logger.info(
+            "Organization created: id=%s slug=%s creator=%s",
+            org.id,
+            normalized_slug,
+            creator_id,
         )
-
-        membership = OrganizationMembership(
-            user_id=creator_id,
-            organization_id=org.id,
-            role=RoleName.ORG_ADMIN.value,
-            status=MembershipStatus.ACTIVE.value,
-            joined_at=datetime.now(timezone.utc),
-        )
-        self._session.add(membership)
-        await self._session.flush()
-
-        logger.info("Organization created: id=%s slug=%s creator=%s", org.id, slug, creator_id)
         return org
+
+    async def list_all_organizations(self) -> list[Organization]:
+        from sqlalchemy import select
+        stmt = select(Organization).order_by(Organization.created_at.desc())
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
 
     async def get_organization(self, org_id: uuid.UUID) -> Organization:
         org = await self._org_repo.get(org_id)

@@ -42,17 +42,41 @@ export function HRFairnessDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      <div className="space-y-8">
+        <div className="page-header">
+          <div>
+            <div className="page-title">HR Fairness &amp; Ethics Dashboard</div>
+            <p className="page-subtitle">
+              Organization-wide fairness monitoring, diversity tracking, and compliance oversight.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="skeleton h-32 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="skeleton h-64 rounded-xl" />
+          <div className="skeleton h-64 rounded-xl" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">{error}</p>
+      <div className="space-y-8">
+        <div className="page-header">
+          <div>
+            <div className="page-title">HR Fairness &amp; Ethics Dashboard</div>
+            <p className="page-subtitle">
+              Organization-wide fairness monitoring, diversity tracking, and compliance oversight.
+            </p>
+          </div>
+        </div>
+        <div className="error-banner">
+          <p>{error}</p>
         </div>
       </div>
     );
@@ -64,18 +88,20 @@ export function HRFairnessDashboard() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">HR Fairness & Ethics Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Organization-wide fairness monitoring, diversity tracking, and compliance oversight.
-        </p>
+    <div className="space-y-8">
+      <div className="page-header">
+        <div>
+          <div className="page-title">HR Fairness &amp; Ethics Dashboard</div>
+          <p className="page-subtitle">
+            Organization-wide fairness monitoring, diversity tracking, and compliance oversight.
+          </p>
+        </div>
       </div>
 
       {overview && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="col-span-1 md:col-span-2 flex justify-center">
+            <div className="col-span-1 md:col-span-2 flex justify-center rounded-xl bg-white card p-6">
               <FairnessScoreCard score={overview.overall_fairness_score} label="Organization Fairness" />
             </div>
             <DiversityStat label="Total Screened" value={overview.total_screened} color="blue" />
@@ -99,9 +125,9 @@ export function HRFairnessDashboard() {
               value={overview.compliance_status?.replace(/_/g, " ") || "N/A"}
               color={overview.compliance_status === "compliant" ? "green" : "orange"}
             />
-            <div className="bg-white border border-gray-200 rounded-lg p-3">
-              <p className="text-xs font-medium text-gray-500 uppercase">Bias Alerts</p>
-              <div className="mt-1">
+            <div className="card p-4 rounded-xl">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Bias Alerts</p>
+              <div className="mt-2">
                 <SeverityCounts counts={severityCounts} />
               </div>
             </div>
@@ -111,8 +137,8 @@ export function HRFairnessDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {metrics && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Fairness Metrics</h2>
+          <div className="card p-6 rounded-xl">
+            <h2 className="section-title mb-4">Fairness Metrics</h2>
             <FairnessMetricsTable
               metrics={{
                 statistical_parity_difference: metrics.statistical_parity_difference,
@@ -123,54 +149,54 @@ export function HRFairnessDashboard() {
                 composite_fairness_score: metrics.composite_fairness_score,
               }}
             />
-            <p className="text-xs text-gray-500 mt-2">Based on {metrics.data_points} data points</p>
+            <p className="text-xs text-slate-500 mt-2">Based on {metrics.data_points} data points</p>
           </div>
         )}
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Bias Alerts</h2>
+        <div className="card p-6 rounded-xl">
+          <h2 className="section-title mb-4">Bias Alerts</h2>
           <BiasAlertPanel alerts={alerts} />
         </div>
       </div>
 
       {overview?.diversity_indicators && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Diversity Overview</h2>
+        <div className="card p-6 rounded-xl">
+          <h2 className="section-title mb-4">Diversity Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Gender Distribution</h3>
+              <h3 className="text-sm font-medium text-slate-700 mb-3">Gender Distribution</h3>
               {Object.entries(overview.diversity_indicators.gender_distribution || {}).map(([gender, count]) => {
                 const total = overview.total_candidates || 1;
                 const pct = ((count / total) * 100).toFixed(1);
                 return (
                   <div key={gender} className="flex items-center gap-3 mb-2">
-                    <span className="text-sm text-gray-600 w-36 capitalize">{gender.replace(/_/g, " ")}</span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-3">
+                    <span className="text-sm text-slate-600 w-36 capitalize">{gender.replace(/_/g, " ")}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-3">
                       <div
-                        className="h-3 rounded-full bg-blue-500 transition-all"
+                        className="h-3 rounded-full bg-primary-500 transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500 w-16 text-right">{count} ({pct}%)</span>
+                    <span className="text-xs text-slate-500 w-16 text-right">{count} ({pct}%)</span>
                   </div>
                 );
               })}
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Location Distribution</h3>
+              <h3 className="text-sm font-medium text-slate-700 mb-3">Location Distribution</h3>
               {Object.entries(overview.diversity_indicators.location_distribution || {}).map(([loc, count]) => {
                 const total = overview.total_candidates || 1;
                 const pct = ((count / total) * 100).toFixed(1);
                 return (
                   <div key={loc} className="flex items-center gap-3 mb-2">
-                    <span className="text-sm text-gray-600 w-36 truncate">{loc}</span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-3">
+                    <span className="text-sm text-slate-600 w-36 truncate">{loc}</span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-3">
                       <div
-                        className="h-3 rounded-full bg-purple-500 transition-all"
+                        className="h-3 rounded-full bg-violet-500 transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500 w-16 text-right">{count} ({pct}%)</span>
+                    <span className="text-xs text-slate-500 w-16 text-right">{count} ({pct}%)</span>
                   </div>
                 );
               })}
@@ -179,20 +205,20 @@ export function HRFairnessDashboard() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Compliance Summary</h2>
+      <div className="card p-6 rounded-xl">
+        <h2 className="section-title mb-4">Compliance Summary</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-800">Fair Hiring Practices</p>
-            <p className="text-xs text-green-600 mt-1">All candidates evaluated using the same criteria. No protected attributes used in scoring.</p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-700">Fair Hiring Practices</p>
+            <p className="text-xs text-emerald-600 mt-1">All candidates evaluated using the same criteria. No protected attributes used in scoring.</p>
           </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-800">Audit Trail</p>
-            <p className="text-xs text-green-600 mt-1">All fairness analyses, bias alerts, and ranking changes are logged for compliance review.</p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-700">Audit Trail</p>
+            <p className="text-xs text-emerald-600 mt-1">All fairness analyses, bias alerts, and ranking changes are logged for compliance review.</p>
           </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-green-800">Transparency</p>
-            <p className="text-xs text-green-600 mt-1">Candidates can view their fairness status and request human review of AI decisions.</p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-medium text-emerald-700">Transparency</p>
+            <p className="text-xs text-emerald-600 mt-1">Candidates can view their fairness status and request human review of AI decisions.</p>
           </div>
         </div>
       </div>

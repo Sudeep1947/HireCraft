@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.assessment_schemas import AssessmentCreateRequest
+from app.domain.enums import AttemptStatus
 from app.domain.models import (
     Assessment,
     AssessmentQuestion,
@@ -17,6 +18,7 @@ from app.domain.models import (
     CandidateAssessment,
     CodingSubmission,
     Job,
+    JobApplication,
     TestCase,
     User,
 )
@@ -33,6 +35,29 @@ def _aware(dt: datetime | None) -> datetime | None:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def candidate_take_link(assessment_id: uuid.UUID | str) -> str:
+    """The one place the candidate's take-assessment route is written.
+
+    Migration 0029 started persisting the issued link on the assignment row, which
+    makes it more important than ever that there is a single definition of it: a
+    writer that formatted the route itself could record a link that no reader
+    would ever produce. Every writer and every fallback reader goes through here,
+    so the stored value and the derived value cannot drift apart.
+    """
+    return f"/candidate/assessments/take/{assessment_id}"
+
+
+def resolve_take_link(stored: str | None, assessment_id: uuid.UUID | str) -> str:
+    """The link to show for an attempt: what was issued, else what is derived.
+
+    Prefers the value recorded on the row so the page shows the link the
+    assignment actually issued. Falls back to deriving it for the two cases where
+    no link was ever issued: a self-started attempt, which was never handed one,
+    and an assignment created before migration 0029.
+    """
+    return stored or candidate_take_link(assessment_id)
 
 
 class AssessmentService:
@@ -155,6 +180,30 @@ class AssessmentService:
         if not assessment or assessment.status != "published":
             raise ValueError("Assessment not found")
 
+        questions = await self._questions_for(assessment_id)
+        if not questions:
+            raise ValueError("Assessment has no questions")
+
+        # Phase 12: an attempt assigned to an application by a recruiter is
+        # resumed here rather than superseded by a new one.
+        #
+        # This must happen BEFORE the attempt-limit check, because that check
+        # counts every attempt the candidate has for this assessment, and the
+        # pre-created ``assigned`` row is one of them. Checking the limit first
+        # would let a candidate who is already holding the only allowed attempt
+        # be told NO_ATTEMPTS_REMAINING for the very attempt a recruiter assigned
+        # them, and there would be no way for them to ever start it.
+        assigned = await self.session.scalar(
+            select(CandidateAssessment)
+            .where(CandidateAssessment.assessment_id == assessment_id)
+            .where(CandidateAssessment.candidate_id == candidate_id)
+            .where(CandidateAssessment.status == AttemptStatus.ASSIGNED.value)
+            .order_by(CandidateAssessment.assigned_at)
+            .limit(1)
+        )
+        if assigned is not None:
+            return await self._activate_attempt(assigned, assessment, questions)
+
         used = await self.session.scalar(
             select(func.count()).select_from(CandidateAssessment)
             .where(CandidateAssessment.assessment_id == assessment_id)
@@ -163,49 +212,89 @@ class AssessmentService:
         if (used or 0) >= assessment.allowed_attempts:
             raise ValueError("NO_ATTEMPTS_REMAINING")
 
-        questions = await self._questions_for(assessment_id)
-        if not questions:
-            raise ValueError("Assessment has no questions")
-
-        import random as _r
-        order = [{"qid": str(q.id), "opts": list(range(len((q.content or {}).get("options") or [])))}
-                 for q in questions]
-        if assessment.shuffle_questions:
-            _r.Random(str(assessment_id) + str(candidate_id)).shuffle(order)
-        elif assessment.shuffle_options:
-            pass
-        if assessment.shuffle_options:
-            rng = _r.Random(str(assessment_id) + str(candidate_id))
-            for entry in order:
-                perm = list(entry["opts"])
-                rng.shuffle(perm)
-                entry["opts"] = perm
-
         now = datetime.now(timezone.utc)
         attempt = CandidateAssessment(
             assessment_id=assessment_id,
             candidate_id=candidate_id,
             attempt_number=(used or 0) + 1,
-            status="in_progress",
+            status=AttemptStatus.IN_PROGRESS.value,
             started_at=now,
             expires_at=now + timedelta(minutes=assessment.duration_minutes),
-            question_order=order,
+            question_order=self._question_order(assessment_id, assessment, questions, candidate_id),
             integrity_events=[],
             current_index=0,
         )
         self.session.add(attempt)
         await self.session.flush()
         await self._auto_expire_guard(attempt)
+        return self._started_payload(attempt, assessment, questions)
+
+    async def _activate_attempt(
+        self,
+        attempt: CandidateAssessment,
+        assessment: Assessment,
+        questions: list[AssessmentQuestion],
+    ) -> dict:
+        """Turn a pre-created ``assigned`` attempt into a running one.
+
+        The clock starts here, on the candidate's first real start, rather than at
+        assignment time. An assessment assigned on Monday and begun on Friday
+        should give the candidate its full duration, not five minutes of it.
+
+        ``question_order`` is generated now, not at assignment, so a question set
+        that changed between assignment and start is what the candidate is
+        actually served. The shuffle is seeded on ``(assessment, candidate)`` as
+        before, so resuming the same assignment reproduces the same order.
+        """
+        now = datetime.now(timezone.utc)
+        attempt.status = AttemptStatus.IN_PROGRESS.value
+        attempt.started_at = now
+        attempt.expires_at = now + timedelta(minutes=assessment.duration_minutes)
+        attempt.question_order = self._question_order(
+            attempt.assessment_id, assessment, questions, attempt.candidate_id,
+        )
+        await self.session.flush()
+        await self._auto_expire_guard(attempt)
+        return self._started_payload(attempt, assessment, questions)
+
+    def _question_order(
+        self,
+        assessment_id: uuid.UUID,
+        assessment: Assessment,
+        questions: list[AssessmentQuestion],
+        candidate_id: uuid.UUID,
+    ) -> list[dict]:
+        """Build the served question order, honouring the shuffle settings."""
+        import random as _r
+        order = [{"qid": str(q.id), "opts": list(range(len((q.content or {}).get("options") or [])))}
+                 for q in questions]
+        if assessment.shuffle_questions:
+            _r.Random(str(assessment_id) + str(candidate_id)).shuffle(order)
+        if assessment.shuffle_options:
+            rng = _r.Random(str(assessment_id) + str(candidate_id))
+            for entry in order:
+                perm = list(entry["opts"])
+                rng.shuffle(perm)
+                entry["opts"] = perm
+        return order
+
+    def _started_payload(
+        self,
+        attempt: CandidateAssessment,
+        assessment: Assessment,
+        questions: list[AssessmentQuestion],
+    ) -> dict:
         return {
             "attempt_id": attempt.id,
             "assessment_id": assessment.id,
             "status": attempt.status,
             "started_at": attempt.started_at,
             "expires_at": attempt.expires_at,
-            "total_questions": len(order),
+            "total_questions": len(questions),
             "instructions": self._instructions(assessment),
             "sections": sorted({self._label_of(q) for q in questions}),
         }
+
 
     @staticmethod
     def _instructions(a: Assessment) -> list[str]:
@@ -500,8 +589,30 @@ class AssessmentService:
         rows = (await self.session.execute(
             select(CandidateAssessment)
             .where(CandidateAssessment.candidate_id == candidate_id)
-            .order_by(CandidateAssessment.started_at.desc())
+            # Phase 12: an ``assigned`` attempt has no ``started_at`` yet, and
+            # NULLs sort *last* under DESC on SQLite, so a candidate's pending
+            # assignment would be buried at the bottom of their own list -- on the
+            # one page whose whole job is telling them what to do next. Ordered
+            # explicitly by status first so it does not depend on the database's
+            # NULL ordering. ``created_at`` breaks the ``started_at`` ties the
+            # previous single-key sort left to the engine.
+            .order_by(
+                (CandidateAssessment.status == AttemptStatus.ASSIGNED.value).desc(),
+                CandidateAssessment.started_at.desc(),
+                CandidateAssessment.created_at.desc(),
+            )
         )).scalars().all()
+        # Job titles for the assignments that came from an application, in one
+        # query for the whole list rather than one per row.
+        application_ids = {at.application_id for at in rows if at.application_id}
+        job_titles: dict[uuid.UUID, str] = {}
+        if application_ids:
+            job_title_rows = (await self.session.execute(
+                select(JobApplication.id, Job.title)
+                .join(Job, Job.id == JobApplication.job_id)
+                .where(JobApplication.id.in_(application_ids))
+            )).all()
+            job_titles = {app_id: title for app_id, title in job_title_rows}
         items = []
         for at in rows:
             a = await self.session.get(Assessment, at.assessment_id)
@@ -511,11 +622,28 @@ class AssessmentService:
             items.append({
                 "attempt_id": at.id,
                 "assessment_id": at.assessment_id,
+                "application_id": at.application_id,
                 "assessment_title": a.title if a else "",
                 "mode": a.mode if a else "",
                 "status": at.status,
-                "started_at": at.started_at,
+                # The schedule the candidate was given: when the recruiter assigned
+                # it. None for a self-started attempt, which nobody scheduled.
+                "scheduled_at": at.assigned_at,
+                # The date and time the recruiter actually chose, which is a
+                # different fact from ``scheduled_at`` above and is what the page
+                # should label "Scheduled". None is a real answer meaning "no time
+                # was chosen", so it is never filled in from ``scheduled_at``.
+                "scheduled_for": at.scheduled_for,
+                # Returned so the page and any notification point at the same link
+                # instead of each rebuilding a route. The stored value is preferred
+                # so the link shown is the one the assignment issued.
+                "assessment_link": resolve_take_link(at.assessment_link, at.assessment_id),
+                "job_title": job_titles.get(at.application_id) if at.application_id else None,
+                # Surfaced so the list can say an attempt is on the clock, which
+                # is the difference between "you have a task" and "you have a
+                # deadline".
                 "expires_at": at.expires_at,
+                "started_at": at.started_at,
                 "submitted_at": at.submitted_at,
                 "overall_score": res.overall_score if res else None,
                 "passed": bool(res and a and res.overall_score >= a.passing_score),

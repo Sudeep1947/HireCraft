@@ -9,7 +9,14 @@ export function ScoreRing({ score, size = 80 }: { score: number; size?: number }
   const color =
     score >= 80 ? "#22c55e" : score >= 60 ? "#3b82f6" : score >= 40 ? "#eab308" : "#ef4444";
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="drop-shadow-sm"
+      role="img"
+      aria-label={`Score ${score}`}
+    >
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e7eb" strokeWidth="6" />
       <circle
         cx={size / 2}
@@ -42,10 +49,10 @@ export function ScoreRing({ score, size = 80 }: { score: number; size?: number }
 
 export function ConfidenceIndicator({ confidence }: { confidence: ConfidenceScore }) {
   const colorMap: Record<string, string> = {
-    very_high: "bg-green-100 text-green-800 border-green-200",
-    high: "bg-blue-100 text-blue-800 border-blue-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-red-100 text-red-800 border-red-200",
+    very_high: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+    high: "bg-sky-50 text-sky-700 ring-sky-200/70",
+    medium: "bg-amber-50 text-amber-700 ring-amber-200/70",
+    low: "bg-red-50 text-red-700 ring-red-200/70",
   };
   const labelMap: Record<string, string> = {
     very_high: "Very High",
@@ -54,8 +61,10 @@ export function ConfidenceIndicator({ confidence }: { confidence: ConfidenceScor
     low: "Low",
   };
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium ${colorMap[confidence.level] || colorMap.medium}`}>
-      <div className="w-2 h-2 rounded-full bg-current" />
+    <div
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ring-inset transition-colors ${colorMap[confidence.level] || colorMap.medium}`}
+    >
+      <div className="h-2 w-2 rounded-full bg-current" />
       {labelMap[confidence.level]} ({confidence.score}%)
     </div>
   );
@@ -66,29 +75,29 @@ export function ConfidenceIndicator({ confidence }: { confidence: ConfidenceScor
 export function FeatureImportanceBar({ feature }: { feature: FeatureImportanceItem }) {
   const barColor =
     feature.impact === "positive"
-      ? "bg-green-500"
+      ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
       : feature.impact === "negative"
-        ? "bg-red-500"
-        : "bg-blue-500";
+        ? "bg-gradient-to-r from-rose-400 to-red-500"
+        : "bg-gradient-to-r from-sky-400 to-blue-500";
   const textColor =
     feature.impact === "positive"
-      ? "text-green-700"
+      ? "text-emerald-700"
       : feature.impact === "negative"
         ? "text-red-700"
-        : "text-blue-700";
+        : "text-sky-700";
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-36 text-sm text-gray-700 shrink-0">{feature.label}</span>
-      <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+    <div className="flex items-center gap-3 py-0.5">
+      <span className="w-36 shrink-0 truncate text-sm text-gray-700">{feature.label}</span>
+      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200/70">
         <div
-          className={`h-full rounded-full ${barColor} transition-all`}
+          className={`h-full rounded-full transition-all duration-500 ease-smooth ${barColor}`}
           style={{ width: `${feature.contribution_pct}%` }}
         />
       </div>
-      <span className={`w-16 text-xs font-bold text-right ${textColor}`}>
+      <span className={`w-16 text-right text-xs font-bold ${textColor}`}>
         {feature.contribution_pct}%
       </span>
-      <span className="w-8 text-xs text-gray-500 text-right">{feature.score}</span>
+      <span className="w-8 text-right text-xs font-semibold text-gray-500">{feature.score}</span>
     </div>
   );
 }
@@ -106,14 +115,23 @@ export function FactorList({
   return (
     <ul className="space-y-2">
       {factors.map((f, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm">
-          <span className={type === "positive" ? "text-green-500 mt-0.5" : "text-red-500 mt-0.5"}>
+        <li
+          key={i}
+          className={`flex items-start gap-2.5 rounded-lg px-3 py-2 text-sm ring-1 ring-inset transition-colors ${
+            type === "positive"
+              ? "bg-emerald-50/60 ring-emerald-200/50"
+              : "bg-red-50/60 ring-red-200/50"
+          }`}
+        >
+          <span
+            className={`mt-0.5 font-bold ${type === "positive" ? "text-emerald-600" : "text-red-600"}`}
+          >
             {type === "positive" ? "+" : "-"}
           </span>
           <div>
-            <span className="font-medium text-gray-900">{f.category}</span>
-            <span className="text-gray-600 ml-1">({f.score}%)</span>
-            <p className="text-xs text-gray-500 mt-0.5">{f.reason}</p>
+            <span className="font-semibold text-gray-900">{f.category}</span>
+            <span className="ml-1 font-medium text-gray-600">({f.score}%)</span>
+            <p className="mt-0.5 text-xs text-gray-500">{f.reason}</p>
           </div>
         </li>
       ))}
@@ -125,9 +143,9 @@ export function FactorList({
 
 export function StatBox({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
+    <div className="card card-hover p-4">
+      <p className="section-label truncate">{label}</p>
+      <p className={`mt-1.5 font-display text-2xl font-bold tracking-tight ${color}`}>{value}</p>
     </div>
   );
 }
@@ -136,7 +154,7 @@ export function StatBox({ label, value, color }: { label: string; value: string 
 
 export function Badge({ label, color }: { label: string; color: string }) {
   return (
-    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${color}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${color}`}>
       {label}
     </span>
   );
@@ -145,33 +163,33 @@ export function Badge({ label, color }: { label: string; color: string }) {
 // ─── Score Color Helpers ────────────────────────────────────────────
 
 export function scoreColor(score: number): string {
-  if (score >= 80) return "text-green-600";
-  if (score >= 60) return "text-blue-600";
-  if (score >= 40) return "text-yellow-600";
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 60) return "text-sky-600";
+  if (score >= 40) return "text-amber-600";
   return "text-red-600";
 }
 
 export function scoreBgColor(score: number): string {
-  if (score >= 80) return "bg-green-100 text-green-800";
-  if (score >= 60) return "bg-blue-100 text-blue-800";
-  if (score >= 40) return "bg-yellow-100 text-yellow-800";
-  return "bg-red-100 text-red-800";
+  if (score >= 80) return "bg-emerald-50 text-emerald-700 ring-emerald-200/70";
+  if (score >= 60) return "bg-sky-50 text-sky-700 ring-sky-200/70";
+  if (score >= 40) return "bg-amber-50 text-amber-700 ring-amber-200/70";
+  return "bg-red-50 text-red-700 ring-red-200/70";
 }
 
 export function strengthColor(level: string): string {
   switch (level) {
-    case "excellent": return "bg-green-100 text-green-800";
-    case "good": return "bg-blue-100 text-blue-800";
-    case "average": return "bg-yellow-100 text-yellow-800";
-    default: return "bg-red-100 text-red-800";
+    case "excellent": return "bg-emerald-50 text-emerald-700 ring-emerald-200/70";
+    case "good": return "bg-sky-50 text-sky-700 ring-sky-200/70";
+    case "average": return "bg-amber-50 text-amber-700 ring-amber-200/70";
+    default: return "bg-red-50 text-red-700 ring-red-200/70";
   }
 }
 
 export function recommendationColor(rec: string): string {
   switch (rec) {
-    case "strongly_recommend": return "bg-green-100 text-green-800";
-    case "recommend": return "bg-blue-100 text-blue-800";
-    case "consider": return "bg-yellow-100 text-yellow-800";
-    default: return "bg-red-100 text-red-800";
+    case "strongly_recommend": return "bg-emerald-50 text-emerald-700 ring-emerald-200/70";
+    case "recommend": return "bg-sky-50 text-sky-700 ring-sky-200/70";
+    case "consider": return "bg-amber-50 text-amber-700 ring-amber-200/70";
+    default: return "bg-red-50 text-red-700 ring-red-200/70";
   }
 }

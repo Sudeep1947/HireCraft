@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Briefcase } from "lucide-react";
+﻿import { useEffect, useState } from "react";
+import { Briefcase, RefreshCw } from "lucide-react";
 import { skill2jobApi } from "../../../api/skill2job";
 import type { CuratedJob, CuratedJobCounts } from "../../../types/skill2job";
 import { SnapshotStat } from "./shared";
@@ -32,11 +32,13 @@ export function JobsSection() {
   }, []);
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-6">
+    <section className="card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-            <Briefcase className="h-5 w-5 text-primary-600" aria-hidden="true" />
+            <span className="rounded-xl bg-primary-50 p-2.5 text-primary-600">
+              <Briefcase className="h-5 w-5" aria-hidden="true" />
+            </span>
             Curated Local Job Catalog
           </h2>
           <p className="mt-1 text-sm text-gray-500">Real local openings served by the job intelligence endpoint.</p>
@@ -45,8 +47,9 @@ export function JobsSection() {
           type="button"
           disabled={busy}
           onClick={load}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="btn-secondary"
         >
+          <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} aria-hidden="true" />
           Refresh
         </button>
       </div>
@@ -56,27 +59,27 @@ export function JobsSection() {
           <SnapshotStat label="Total jobs" value={counts.total} />
           <SnapshotStat label="Remote" value={counts.remote} />
           <SnapshotStat label="On-site" value={counts.on_site} />
-          <div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-3 shadow-xs">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Top location</p>
-            <p className="text-sm font-bold text-gray-800">{counts.top_locations[0]?.location ?? "—"}</p>
+            <p className="mt-0.5 text-sm font-bold text-gray-800">{counts.top_locations[0]?.location ?? "—"}</p>
           </div>
         </div>
       )}
 
       {failed ? (
-        <p className="mt-4 text-sm text-gray-400">No job catalog available yet.</p>
+        <p className="mt-4 text-sm text-gray-500">No job catalog available yet.</p>
       ) : (
         <ul className="mt-4 divide-y divide-gray-100">
           {jobs.map((j) => (
-            <li key={j.id} className="flex items-start justify-between gap-4 py-4">
+            <li key={j.id} className="flex items-start justify-between gap-4 py-4 transition-colors hover:bg-gray-50/60">
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-gray-900">{j.title}</p>
                 <p className="text-xs text-gray-500">
                   {j.company} · {j.location ?? "Remote"} · {j.remote_type ?? "job"}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {j.required_skills.slice(0, 8).map((s) => (
-                    <span key={s} className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                    <span key={s} className="badge badge-neutral">
                       {s}
                     </span>
                   ))}

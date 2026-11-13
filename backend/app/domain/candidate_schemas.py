@@ -301,6 +301,11 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
     updated_at: datetime
+    #: Where this notification's action goes, when one was recorded. Null for
+    #: notifications written before the column existed and for types that have no
+    #: destination, in which case the client falls back to routing by type exactly
+    #: as it did before.
+    action_link: str | None = None
 
     model_config = {"from_attributes": True}
 

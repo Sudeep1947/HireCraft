@@ -7,6 +7,7 @@ export interface Notification {
   message: string;
   notification_type: string;
   is_read: boolean;
+  action_link?: string;
   created_at: string;
   updated_at: string;
 }

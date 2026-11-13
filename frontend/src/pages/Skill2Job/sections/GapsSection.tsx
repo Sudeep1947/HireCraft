@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { BookOpen, ListChecks } from "lucide-react";
 import { skill2jobApi } from "../../../api/skill2job";
 import type { SkillGapAnalysis, SkillGapSummary } from "../../../types/skill2job";
@@ -47,18 +47,20 @@ export function GapsSection() {
       />
 
       {summary && summary.teaching_plan.length > 0 && (
-        <section className="rounded-2xl border border-gray-200 bg-white p-6">
+        <section className="card p-6">
           <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-            <BookOpen className="h-5 w-5 text-primary-600" aria-hidden="true" />
+            <span className="rounded-xl bg-primary-50 p-2.5 text-primary-600">
+              <BookOpen className="h-5 w-5" aria-hidden="true" />
+            </span>
             Teacher-Style Learning Plan
           </h3>
           <ul className="mt-4 space-y-3">
             {summary.teaching_plan.map((step) => (
-              <li key={step.skill} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <li key={step.skill} className="rounded-xl border border-gray-100 bg-gray-50/60 p-4 shadow-xs">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-bold text-gray-900">{step.skill}</p>
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    step.priority === "high" ? "bg-red-100 text-red-700" : step.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                  <span className={`badge ${
+                    step.priority === "high" ? "badge-danger" : step.priority === "medium" ? "badge-warning" : "badge-info"
                   }`}>
                     {step.priority} priority
                   </span>
@@ -74,28 +76,28 @@ export function GapsSection() {
       )}
 
       {analyses.length > 0 && (
-        <section className="rounded-2xl border border-gray-200 bg-white p-6">
+        <section className="card p-6">
           <h3 className="text-lg font-bold text-gray-900">Per-Job Analysis</h3>
           <ul className="mt-4 divide-y divide-gray-100">
             {analyses.map((a) => (
-              <li key={a.job_id} className="py-4">
+              <li key={a.job_id} className="py-4 transition-colors hover:bg-gray-50/60">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-bold text-gray-900">
                     {a.job_title} <span className="font-normal text-gray-400">· {a.company}</span>
                   </p>
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-gray-500">readiness {a.interview_readiness_score}</span>
-                    <span className="text-lg font-extrabold text-primary-700">{a.overall_score}</span>
+                    <span className="font-display text-lg font-extrabold text-primary-700">{a.overall_score}</span>
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {a.missing_required_skills.map((s) => (
-                    <span key={s} className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                    <span key={s} className="badge badge-danger">
                       {s}
                     </span>
                   ))}
                   {a.missing_preferred_skills.map((s) => (
-                    <span key={s} className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    <span key={s} className="badge badge-warning">
                       bonus · {s}
                     </span>
                   ))}
@@ -106,17 +108,17 @@ export function GapsSection() {
                 {a.gap_items.length > 0 && (
                   <ul className="mt-3 space-y-2">
                     {a.gap_items.slice(0, 6).map((g) => (
-                      <li key={g.skill} className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+                      <li key={g.skill} className="rounded-lg border border-gray-100 bg-gray-50/50 p-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-xs font-bold text-gray-800">{g.skill}</p>
                           <div className="flex items-center gap-1.5">
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                              g.gap_kind === "evidence_gap" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+                            <span className={`badge ${
+                              g.gap_kind === "evidence_gap" ? "badge-warning" : "badge-danger"
                             }`}>
                               {g.gap_kind === "evidence_gap" ? "evidence gap" : "skill gap"}
                             </span>
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                              g.priority === "high" ? "bg-red-50 text-red-600" : g.priority === "medium" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"
+                            <span className={`badge ${
+                              g.priority === "high" ? "badge-danger" : g.priority === "medium" ? "badge-warning" : "badge-info"
                             }`}>
                               {g.priority}
                             </span>
@@ -146,11 +148,11 @@ export function GapsSection() {
       )}
 
       {!busy && analyses.length === 0 && !summary && (
-        <section className="rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+        <div className="empty-state">
           <p className="text-sm text-gray-500">
             No skill-gap analysis yet. Run “Analyze gaps” after matching has computed your profile score.
           </p>
-        </section>
+        </div>
       )}
     </div>
   );

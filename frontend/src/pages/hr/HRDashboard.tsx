@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { useToast } from "../../contexts/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
 import { dashboardApi } from "../../api/dashboard";
 import type { HRDashboardData } from "../../api/dashboard";
 import {
-  DashboardHeader,
   StatCard,
   DashboardCard,
   PipelineCard,
@@ -18,7 +16,7 @@ import {
 const SvgIcons = {
   positions: (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A18.18 18.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
     </svg>
   ),
   candidates: (
@@ -52,8 +50,36 @@ export function HRDashboard() {
       .finally(() => setLoading(false));
   }, [addToast]);
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
-  if (!data) return <div className="mt-10 text-center text-gray-500">Failed to load dashboard</div>;
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="space-y-2">
+          <div className="skeleton h-9 w-52" />
+          <div className="skeleton h-4 w-56" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((tile) => (
+            <div key={tile} className="skeleton h-32" />
+          ))}
+        </div>
+        <div className="skeleton h-56 w-full" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="skeleton h-72" />
+          <div className="skeleton h-72" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="animate-fade-up">
+        <div className="error-banner">
+          <span>Failed to load dashboard</span>
+        </div>
+      </div>
+    );
+  }
 
   const deptHiring = data.department_hiring.map((d) => ({
     id: (d as Record<string, unknown>).department as string,
@@ -74,18 +100,20 @@ export function HRDashboard() {
   }));
 
   return (
-    <div className="space-y-6">
-      <DashboardHeader
-        title="HR Dashboard"
-        subtitle={`Welcome back, ${user?.full_name ?? "HR Manager"}`}
-        actions={
-          <a href="/hr/pipeline" className="px-4 py-2 rounded-lg bg-primary-600 text-sm font-medium text-white hover:bg-primary-700 transition-colors">
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">HR Dashboard</h1>
+          <p className="page-subtitle">{`Welcome back, ${user?.full_name ?? "HR Manager"}`}</p>
+        </div>
+        <div className="flex gap-2">
+          <a href="/hr/pipeline" className="btn-primary btn-md">
             View Pipeline
           </a>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Open Positions" value={data.open_positions} color="primary" icon={SvgIcons.positions} />
         <StatCard title="Total Candidates" value={data.total_candidates} color="green" icon={SvgIcons.candidates} />
         <StatCard title="Recruiters" value={data.total_recruiters} color="blue" icon={SvgIcons.recruiters} />
@@ -104,18 +132,19 @@ export function HRDashboard() {
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <DashboardCard title="Department Hiring">
+        <DashboardCard title="Department Hiring" className="rounded-xl">
           {deptHiring.length > 0 ? (
             <div className="space-y-2">
               {deptHiring.map((dept) => (
-                <div key={dept.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={dept.id}
+                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/70 p-3"
+                >
                   <div>
                     <p className="text-sm font-medium text-gray-700">{dept.name}</p>
                     <p className="text-xs text-gray-500">{dept.subtitle}</p>
                   </div>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${dept.badge.color}`}>
-                    {dept.badge.label}
-                  </span>
+                  <span className={`badge-success ${dept.badge.color}`}>{dept.badge.label}</span>
                 </div>
               ))}
             </div>
@@ -132,7 +161,7 @@ export function HRDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <DashboardCard title="Recruitment Overview">
+        <DashboardCard title="Recruitment Overview" className="rounded-xl">
           <InfoRow
             items={[
               { label: "Open Positions", value: data.open_positions },

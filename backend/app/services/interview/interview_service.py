@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import Interview, Job, User
+from app.domain.enums import InterviewType
 from app.repositories.interview.interview import (
     InterviewAnswerRepository,
     InterviewQuestionRepository,
@@ -17,6 +18,7 @@ from app.repositories.interview.interview import (
 from app.repositories.candidate.profile import CandidateProfileRepository
 from app.repositories.jobs.job import JobRepository
 from app.services.interview.answer_evaluator import AnswerEvaluator
+from app.services.interview.interview_room_service import room_id_for
 from app.services.interview.mock_interview import MockInterviewService
 from app.services.interview.question_generator import QuestionGenerator
 from app.services.interview.scorecard_engine import ScorecardEngine
@@ -108,7 +110,20 @@ class InterviewService:
         categories: list[str] | None = None,
         difficulty: str = "medium",
         question_count: int = 10,
+        application_id: uuid.UUID | None = None,
+        stage: str = "recruiter",
     ) -> Interview:
+        """Create a scheduled interview with its generated question set.
+
+        ``application_id`` is the Phase 11 link to the ``JobApplication`` this
+        interview serves. It is optional because mock/practice interviews and the
+        legacy job+candidate scheduling flow have no application. The caller is
+        responsible for having authorized the pair: this method only persists.
+
+        ``stage`` (Phase 15) records which hiring round this is -- ``recruiter``
+        by default, ``hr`` for a second-round interview -- separately from the
+        interview's status.
+        """
         job = await self.session.get(Job, job_id)
         if not job:
             raise ValueError("Job not found")
@@ -125,14 +140,23 @@ class InterviewService:
         interview = await self.interview_repo.create(
             job_id=job_id,
             candidate_id=candidate_id,
+            application_id=application_id,
             recruiter_id=recruiter_id,
             interview_type="recruiter_scheduled",
+            stage=stage,
             status="scheduled",
             scheduled_at=scheduled_at,
             duration_minutes=duration_minutes,
             total_questions=len(gen["questions"]),
             questions_answered=0,
         )
+
+        # Phase 14: the shared room this interview's participants will join.
+        # Assigned here, where every scheduled interview is created, so the room
+        # exists from the moment it is scheduled rather than waiting for somebody
+        # to join. Mock practice sessions are untouched: they have their own
+        # self-service flow and their own screen, so they get no room.
+        interview.room_id = room_id_for(interview.id)
 
         for idx, q in enumerate(gen["questions"]):
             await self.question_repo.create(
@@ -291,9 +315,9 @@ class InterviewService:
     ) -> list[dict]:
         if role == "candidate":
             interviews = await self.interview_repo.list_by_candidate(user_id)
-        elif role in ("recruiter", "hr"):
+        elif role in ("recruiter", "hr", "hr_manager"):
             interviews = await self.interview_repo.list_by_recruiter(user_id)
-            if role == "hr":
+            if role in ("hr", "hr_manager"):
                 all_interviews = await self.interview_repo.list_by_candidate(user_id)
                 interviews = list({i.id: i for i in interviews + all_interviews}.values())
         else:
@@ -303,6 +327,15 @@ class InterviewService:
         for iv in interviews:
             job = await self.session.get(Job, iv.job_id)
             candidate = await self.session.get(User, iv.candidate_id)
+            # The interviewer's display name. For the candidate this is the one
+            # fact about the other side they are entitled to -- "who signed the
+            # job" -- and it is a plain name from the interview's own row, not
+            # any account detail, contact or organization internals. For staff
+            # it is simply the colleague who owns the interview.
+            recruiter = (
+                await self.session.get(User, iv.recruiter_id)
+                if iv.recruiter_id else None
+            )
             scorecard = await self.scorecard_repo.get_by_interview(iv.id)
             items.append({
                 "id": iv.id,
@@ -310,18 +343,48 @@ class InterviewService:
                 "job_title": job.title if job else "",
                 "candidate_id": iv.candidate_id,
                 "candidate_name": candidate.full_name if candidate else "",
+                # Which application this interview was scheduled from, so a
+                # reader can tell "an interview with this candidate" apart from
+                # "the interview on this candidate's application for this job".
+                # None for a practice/mock interview, which has no application.
+                "application_id": iv.application_id,
                 "interview_type": iv.interview_type,
+                "stage": getattr(iv, "stage", "recruiter") or "recruiter",
                 "status": iv.status,
                 "scheduled_at": iv.scheduled_at,
                 "completed_at": iv.completed_at,
+                # The scheduled length, so a list row can show "30 minutes"
+                # without the client loading the room or the detail payload.
+                "duration_minutes": iv.duration_minutes,
                 "total_questions": iv.total_questions,
                 "questions_answered": iv.questions_answered,
                 "overall_score": scorecard.overall_score if scorecard else None,
+                "recruiter_name": recruiter.full_name if recruiter else "",
                 "created_at": iv.created_at,
             })
         return items
 
-    async def get_interview_detail(self, interview_id: uuid.UUID) -> dict | None:
+    async def get_interview_detail(
+        self, interview_id: uuid.UUID, *, for_candidate: bool = False,
+    ) -> dict | None:
+        """Full interview detail.
+
+        ``for_candidate`` narrows the payload for the interview's own subject.
+        Without it a candidate could read the hiring decision made about them:
+        the scorecard carries the recommendation, the hiring confidence and the
+        recruiter's private notes, and the per-answer evaluations are the
+        interviewer's assessment rather than the candidate's own work.
+
+        What the candidate still sees depends on why the interview exists:
+
+        - A **mock** interview is a practice product. The candidate is meant to
+          read the AI feedback on their own answers, so evaluations are kept.
+        - A **recruiter-scheduled** interview is real hiring. Its evaluations
+          are the interviewer's assessment of the candidate and are withheld.
+
+        The scorecard is withheld either way: it is a staff artifact, and a
+        candidate has no route to it.
+        """
         interview = await self.interview_repo.get_with_questions(interview_id)
         if not interview:
             return None
@@ -330,6 +393,13 @@ class InterviewService:
         candidate = await self.session.get(User, interview.candidate_id)
         recruiter = await self.session.get(User, interview.recruiter_id) if interview.recruiter_id else None
         scorecard = await self.scorecard_repo.get_by_interview(interview_id)
+
+        # Mock practice feedback is the candidate's own; real-interview
+        # evaluations are the interviewer's and stay with staff.
+        evaluations_visible = (
+            not for_candidate
+            or interview.interview_type == InterviewType.MOCK.value
+        )
 
         questions_data = []
         for q in interview.questions:
@@ -344,7 +414,7 @@ class InterviewService:
             }
             if q.answer:
                 eval_data = None
-                if q.answer.evaluation:
+                if q.answer.evaluation and evaluations_visible:
                     eval_data = {
                         "id": q.answer.evaluation.id,
                         "technical_accuracy": q.answer.evaluation.technical_accuracy,
@@ -367,7 +437,7 @@ class InterviewService:
             questions_data.append(q_data)
 
         scorecard_data = None
-        if scorecard:
+        if scorecard and not for_candidate:
             scorecard_data = {
                 "id": scorecard.id,
                 "interview_id": scorecard.interview_id,
@@ -394,9 +464,20 @@ class InterviewService:
             "candidate_id": interview.candidate_id,
             "candidate_name": candidate.full_name if candidate else "",
             "candidate_email": candidate.email if candidate else "",
-            "recruiter_id": interview.recruiter_id,
-            "recruiter_name": recruiter.full_name if recruiter else "",
+            # The application this interview belongs to, when it came from one.
+            # Both roles already hold this id for their own record -- the
+            # recruiter navigates the application, the candidate tracks it -- so
+            # it names the record without adding any decision data.
+            "application_id": interview.application_id,
+            # The interviewer's identity is withheld from the candidate: who
+            # interviewed you is not part of your own interview record.
+            "recruiter_id": None if for_candidate else interview.recruiter_id,
+            "recruiter_name": (
+                None if for_candidate
+                else (recruiter.full_name if recruiter else "")
+            ),
             "interview_type": interview.interview_type,
+            "stage": getattr(interview, "stage", "recruiter") or "recruiter",
             "status": interview.status,
             "scheduled_at": interview.scheduled_at,
             "started_at": interview.started_at,
@@ -431,6 +512,7 @@ class InterviewService:
                 "id": iv.id,
                 "job_title": job.title if job else "",
                 "interview_type": iv.interview_type,
+                "stage": getattr(iv, "stage", "recruiter") or "recruiter",
                 "status": iv.status,
                 "completed_at": iv.completed_at,
                 "created_at": iv.created_at,
@@ -458,7 +540,7 @@ class InterviewService:
         total = await self.interview_repo.count_total(recruiter_id=recruiter_id)
         completed = await self.interview_repo.count_completed(recruiter_id=recruiter_id)
         upcoming = await self.interview_repo.list_upcoming_by_recruiter(recruiter_id)
-        avg_score = await self.interview_repo.avg_score()
+        avg_score = await self.interview_repo.avg_score(recruiter_id=recruiter_id)
 
         interviews = await self.interview_repo.list_by_recruiter(recruiter_id)
         score_dist = {"excellent": 0, "good": 0, "average": 0, "below_average": 0}
@@ -484,6 +566,7 @@ class InterviewService:
                 "job_title": job.title if job else "",
                 "candidate_name": candidate.full_name if candidate else "",
                 "interview_type": iv.interview_type,
+                "stage": getattr(iv, "stage", "recruiter") or "recruiter",
                 "status": iv.status,
                 "created_at": iv.created_at,
             })

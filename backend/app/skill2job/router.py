@@ -449,7 +449,7 @@ async def skill2job_training_progress_get(
 )
 async def skill2job_training_run(
     service: Skill2JobService = Depends(_get_service),
-    current_user: User = Depends(require_role("candidate")),
+    current_user: User = Depends(require_role("super_admin", "admin", "candidate")),
 ):
     return await service.run_pipeline(current_user.id)
 
@@ -462,9 +462,11 @@ async def skill2job_training_run(
 async def skill2job_training_traces(
     limit: int = 10,
     service: Skill2JobService = Depends(_get_service),
-    current_user: User = Depends(require_role("candidate")),
+    current_user: User = Depends(require_role("super_admin", "admin", "candidate")),
 ):
-    return await service.list_pipeline_traces(current_user.id, limit)
+    user_role_names = {ur.role.name for ur in current_user.roles}
+    is_admin = bool(user_role_names.intersection({"super_admin", "admin"}))
+    return await service.list_pipeline_traces(current_user.id, limit=limit, is_admin=is_admin)
 
 
 @router.get(
@@ -475,9 +477,11 @@ async def skill2job_training_traces(
 async def skill2job_training_trace(
     run_id: str,
     service: Skill2JobService = Depends(_get_service),
-    current_user: User = Depends(require_role("candidate")),
+    current_user: User = Depends(require_role("super_admin", "admin", "candidate")),
 ):
-    return await service.get_pipeline_trace(current_user.id, run_id)
+    user_role_names = {ur.role.name for ur in current_user.roles}
+    is_admin = bool(user_role_names.intersection({"super_admin", "admin"}))
+    return await service.get_pipeline_trace(current_user.id, run_id, is_admin=is_admin)
 
 # --- Phase 9: Time-to-Ready Endpoints ---
 

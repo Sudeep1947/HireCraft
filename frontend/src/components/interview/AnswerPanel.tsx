@@ -37,8 +37,8 @@ export function AnswerPanel({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-500">Your Answer</span>
-        <span className={`text-sm font-mono ${elapsed > 120 ? "text-red-500" : "text-gray-500"}`}>
+        <span className="text-sm font-medium text-ink-muted">Your Answer</span>
+        <span className={`text-sm font-mono ${elapsed > 120 ? "text-rose-500" : "text-ink-muted"}`}>
           {formatTime(elapsed)}
         </span>
       </div>
@@ -48,7 +48,7 @@ export function AnswerPanel({
         disabled={disabled}
         placeholder="Type your answer here..."
         rows={6}
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50"
+        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-ink placeholder-ink-subtle focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-surface-muted"
       />
       <div className="flex justify-end">
         <button

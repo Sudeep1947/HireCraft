@@ -144,7 +144,7 @@ async def test_candidate_cannot_create_organization(client: AsyncClient, auth_se
         json={"name": "Hacker Org", "slug": "hacker-org"},
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert resp.status_code in (201, 403)
+    assert resp.status_code == 403
 
 
 @pytest.mark.asyncio

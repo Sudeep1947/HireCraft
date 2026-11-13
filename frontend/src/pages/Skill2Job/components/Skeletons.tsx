@@ -1,10 +1,10 @@
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-lg bg-gray-200 ${className}`} />;
+  return <div className={`skeleton ${className}`} />;
 }
 
 export function CardSkeleton({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6 space-y-3">
+    <div className="card space-y-3 p-6">
       <Skeleton className="h-5 w-1/3" />
       {Array.from({ length: lines }).map((_, i) => (
         <Skeleton key={i} className="h-4 w-full" />
@@ -15,11 +15,11 @@ export function CardSkeleton({ lines = 3 }: { lines?: number }) {
 
 export function ReadinessSkeleton() {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-6">
-      <Skeleton className="h-5 w-40 mb-4" />
-      <div className="flex items-center gap-6">
-        <Skeleton className="h-[130px] w-[130px] rounded-full" />
-        <div className="grid grid-cols-2 gap-4 flex-1">
+    <div className="card p-6">
+      <Skeleton className="mb-4 h-5 w-40" />
+      <div className="flex flex-col items-center gap-6 sm:flex-row">
+        <Skeleton className="h-[130px] w-[130px] shrink-0 rounded-full" />
+        <div className="grid w-full grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-16 rounded-xl" />
           ))}
@@ -31,7 +31,7 @@ export function ReadinessSkeleton() {
 
 export function JobCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
+    <div className="card space-y-3 p-5">
       <div className="flex justify-between">
         <div className="space-y-2">
           <Skeleton className="h-5 w-40" />

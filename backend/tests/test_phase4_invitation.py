@@ -186,17 +186,19 @@ async def test_unauthenticated_cannot_create_invitation(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_non_member_cannot_create_invitation(client: AsyncClient, session):
-    user = await _create_user_with_role_in_db(session, "nonmember@test.com", "Non Member", "candidate")
-    token = await _login(client, "nonmember@test.com")
-
-    org_resp = await client.post(
-        "/api/v1/organizations",
-        json={"name": "Other Org", "slug": f"other-org-{uuid.uuid4().hex[:6]}"},
-        headers={"Authorization": f"Bearer {token}"},
+    # Organization creation is platform-admin-only, so seed the tenant directly
+    # and keep this test focused on the invitation authorization boundary.
+    org = Organization(
+        id=uuid.uuid4(),
+        name="Other Org",
+        slug=f"other-org-{uuid.uuid4().hex[:6]}",
+        status="active",
     )
-    org_id = org_resp.json()["id"]
+    session.add(org)
+    await session.flush()
+    org_id = str(org.id)
 
-    other_user = await _create_user_with_role_in_db(session, "outsider@test.com", "Outsider", "candidate")
+    await _create_user_with_role_in_db(session, "outsider@test.com", "Outsider", "candidate")
     other_token = await _login(client, "outsider@test.com")
 
     resp = await client.post(
@@ -1233,7 +1235,7 @@ async def test_existing_user_cannot_accept_via_public_new_user_endpoint(client: 
         },
     )
     assert resp.status_code == 422
-    assert "already exists" in resp.json()["detail"].lower()
+    assert "already exists" in resp.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio

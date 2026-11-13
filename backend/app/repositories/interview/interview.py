@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,6 +57,102 @@ class InterviewRepository(BaseRepository[Interview]):
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_by_jobs(
+        self, job_ids: Sequence[uuid.UUID],
+    ) -> list[Interview]:
+        """Every interview belonging to any of the given jobs.
+
+        The tenant boundary for aggregate reporting: the caller resolves which
+        jobs it may read with ``authorized_job_ids`` and the filter is applied in
+        the query, so an organization-wide report can never reach another
+        tenant's interviews.
+
+        An empty list returns nothing rather than an unbounded query, so a caller
+        with no visible jobs gets an empty report instead of everyone's.
+        """
+        if not job_ids:
+            return []
+        stmt = (
+            select(Interview)
+            .where(Interview.job_id.in_(list(job_ids)))
+            .order_by(Interview.created_at.desc())
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    # ── Phase 11: application-linked lookups ───────────────────────
+    #
+    # These deliberately do NOT eager-load questions, answers, evaluations or
+    # the scorecard. The application evidence panels render one row per
+    # interview and the detail/scorecard endpoints already load the heavy graph
+    # on demand, so selectinloading it here would multiply the row count of
+    # every application list view by the size of every interview.
+
+    async def list_by_application(
+        self, application_id: uuid.UUID,
+    ) -> list[Interview]:
+        """Every interview linked to one application, oldest first.
+
+        Ordering by ``scheduled_at`` keeps a rescheduled interview in the
+        position a recruiter expects rather than reordering the list on each
+        change, with ``created_at`` as a stable tiebreaker for interviews that
+        have no scheduled time yet.
+        """
+        stmt = (
+            select(Interview)
+            .options(selectinload(Interview.recruiter))
+            .where(Interview.application_id == application_id)
+            .order_by(
+                Interview.scheduled_at.asc().nulls_last(),
+                Interview.created_at.asc(),
+            )
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def get_by_application(
+        self, application_id: uuid.UUID, interview_id: uuid.UUID,
+    ) -> Interview | None:
+        """Fetch one interview *scoped to* its application.
+
+        The application id is part of the predicate rather than checked after
+        the load, so an interview belonging to a different application can never
+        be returned and then filtered: there is no window in which a row for
+        another application is loaded at all.
+        """
+        stmt = (
+            select(Interview)
+            .options(selectinload(Interview.recruiter))
+            .where(
+                Interview.id == interview_id,
+                Interview.application_id == application_id,
+            )
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_active_by_application(
+        self, application_id: uuid.UUID,
+    ) -> Interview | None:
+        """The first still-open interview for an application, if any.
+
+        Used to keep a retried schedule request from creating a second live
+        interview for the same application. "Open" means scheduled or in
+        progress; a cancelled or completed interview no longer blocks a new one.
+        """
+        stmt = (
+            select(Interview)
+            .options(selectinload(Interview.recruiter))
+            .where(
+                Interview.application_id == application_id,
+                Interview.status.in_(["scheduled", "in_progress"]),
+            )
+            .order_by(Interview.created_at.asc())
+            .limit(1)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def list_upcoming_by_candidate(self, candidate_id: uuid.UUID) -> list[Interview]:
         from datetime import datetime, timezone
         stmt = (
@@ -93,8 +190,18 @@ class InterviewRepository(BaseRepository[Interview]):
         result = await self._session.execute(stmt)
         return result.scalar_one()
 
-    async def avg_score(self, candidate_id: uuid.UUID | None = None) -> float:
-        from sqlalchemy import and_
+    async def avg_score(
+        self,
+        candidate_id: uuid.UUID | None = None,
+        recruiter_id: uuid.UUID | None = None,
+    ) -> float:
+        """Mean scorecard score across completed interviews.
+
+        Both scopes are honoured. A caller that passes neither aggregates every
+        completed interview on the platform, so the recruiter dashboard used to
+        report a cross-tenant average sitting next to correctly scoped totals
+        and completed counts on the same screen.
+        """
         stmt = (
             select(func.avg(InterviewScorecard.overall_score))
             .join(Interview, InterviewScorecard.interview_id == Interview.id)
@@ -102,6 +209,8 @@ class InterviewRepository(BaseRepository[Interview]):
         )
         if candidate_id:
             stmt = stmt.where(Interview.candidate_id == candidate_id)
+        if recruiter_id:
+            stmt = stmt.where(Interview.recruiter_id == recruiter_id)
         result = await self._session.execute(stmt)
         avg = result.scalar_one()
         return float(avg) if avg else 0.0

@@ -24,43 +24,39 @@ export function ScenarioBuilder({ baseline, config, onChange, disabled }: Scenar
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+        <div className="card-solid p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Baseline configuration</h3>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <h3 className="text-sm font-semibold text-ink">Baseline configuration</h3>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 Snapshot of the job&apos;s current hiring setup
               </p>
             </div>
-            <span className="inline-flex rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">
-              Baseline
-            </span>
+            <span className="badge-neutral">Baseline</span>
           </div>
           <SimulationConfigSummary config={simulationConfigFromBaseline(baseline)} />
         </div>
 
-        <div className="rounded-xl border border-primary-200 bg-white p-5">
+        <div className="card p-5 ring-1 ring-primary-200/60">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Simulation configuration</h3>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <h3 className="text-sm font-semibold text-ink">Simulation configuration</h3>
+              <p className="mt-0.5 text-xs text-ink-muted">
                 What-if scenario to test against the baseline
               </p>
             </div>
-            <span className="inline-flex rounded-full bg-primary-100 px-2 py-0.5 text-xs font-semibold text-primary-700">
-              Simulation
-            </span>
+            <span className="badge-primary">Simulation</span>
           </div>
           <ScenarioConfiguration value={config} onChange={onChange} disabled={disabled} />
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm">
-        <span className="text-gray-600">Changes vs baseline</span>
+      <div className="card-solid flex items-center justify-between px-4 py-2.5 text-sm">
+        <span className="text-ink-muted">Changes vs baseline</span>
         <span
           className={
             changeCount === 0
-              ? "font-semibold text-gray-500"
+              ? "font-semibold text-ink-muted"
               : "font-semibold text-primary-700"
           }
         >

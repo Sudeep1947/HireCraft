@@ -34,14 +34,26 @@ async def get_auth_service(
     return AuthService(user_repo, refresh_token_repo, session=db)
 
 
+async def get_oauth_service(
+    user_repo: UserRepository = Depends(get_user_repo),
+    refresh_token_repo: RefreshTokenRepository = Depends(get_refresh_token_repo),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.oauth_service import OAuthService
+
+    return OAuthService(user_repo, refresh_token_repo, session=db)
+
+
 async def get_user_service(user_repo: UserRepository = Depends(get_user_repo)) -> UserService:
     return UserService(user_repo)
 
 
-async def get_current_user(
-    authorization: str = Header(...),
-    user_repo: UserRepository = Depends(get_user_repo),
+async def _load_user_from_authorization(
+    authorization: str,
+    user_repo: UserRepository,
 ) -> User:
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authentication required")
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header")
     token = authorization.removeprefix("Bearer ")
@@ -57,6 +69,29 @@ async def get_current_user(
     return user
 
 
+async def get_current_user(
+    authorization: str | None = Header(None),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> User:
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await _load_user_from_authorization(authorization, user_repo)
+
+
+async def get_current_user_strict(
+    authorization: str | None = Header(None),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> User:
+    """Authenticate, reporting a missing header as 401 instead of FastAPI's 422.
+
+    Platform-administration endpoints use this so an anonymous caller is
+    unambiguously unauthenticated rather than failed validation.
+    """
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return await _load_user_from_authorization(authorization, user_repo)
+
+
 def require_role(*roles: str):
     allowed = expand_required_roles(roles)
 
@@ -68,10 +103,18 @@ def require_role(*roles: str):
     return role_checker
 
 
-def require_permission(permission: Permission):
+def require_permission(permission: Permission, *, strict_auth: bool = False):
+    """Require a global permission.
+
+    ``strict_auth`` makes a missing Authorization header return 401 (used by
+    platform-administration endpoints); the default preserves FastAPI's
+    existing validation behavior for the rest of the API.
+    """
+    auth_dependency = get_current_user_strict if strict_auth else get_current_user
+
     async def permission_checker(
         request: Request,
-        current_user: User = Depends(get_current_user),
+        current_user: User = Depends(auth_dependency),
     ) -> User:
         user_role_names = [ur.role.name for ur in current_user.roles]
         if not user_has_permission(user_role_names, permission):
@@ -182,7 +225,7 @@ async def get_membership_repo(db: AsyncSession = Depends(get_db)) -> Organizatio
 
 
 async def get_current_user_with_org(
-    authorization: str = Header(...),
+    authorization: str | None = Header(None),
     user_repo: UserRepository = Depends(get_user_repo),
     membership_repo: OrganizationMembershipRepository = Depends(get_membership_repo),
     organization_id: uuid.UUID | None = Query(None),

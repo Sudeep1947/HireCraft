@@ -2,16 +2,459 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ==========================================================================
+   Skill2Job Design System — "Futuristic AI Premium + Clean SaaS + Glass"
+   Single source of truth for the redesigned frontend.
+   ========================================================================== */
+
+:root {
+  --s2-brand-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #4f46e5 100%);
+  --s2-brand-gradient-soft: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.12) 0%,
+    rgba(59, 130, 246, 0.14) 50%,
+    rgba(79, 70, 229, 0.12) 100%
+  );
+  --s2-glass-bg: rgba(255, 255, 255, 0.85);
+  --s2-glass-border: rgba(241, 245, 249, 0.8);
 }
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
+    color: #111827;
+    background-color: #f9fafb;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: theme("fontFamily.display");
+    letter-spacing: -0.015em;
+    color: theme("colors.gray.900");
+  }
+
+  ::selection {
+    background: rgba(85, 87, 230, 0.22);
+    color: theme("colors.gray.900");
+  }
+
+  /* Premium form controls: applied wherever pages do not override them. */
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: theme("colors.gray.400");
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  /* Consistent, brand-tinted focus rings across all interactive elements. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="link"]:focus-visible {
+    outline: 2px solid rgba(85, 87, 230, 0.65);
+    outline-offset: 2px;
+    border-radius: theme("borderRadius.md");
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd1e2;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9aa4c0;
+    background-clip: content-box;
+    border: 2px solid transparent;
+  }
+
+  /* Tables: shared typographic baseline; page wrappers add the surface. */
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+  }
+
+  th {
+    font-family: theme("fontFamily.sans");
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+
+  /* Standard solid surface */
+  .glass {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  /* Standard content card. Usage: className="card p-6" */
+  .card {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: theme("borderRadius.2xl");
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+    transition:
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .card-hover:hover {
+    box-shadow: 0 2px 4px rgba(31, 32, 76, 0.05), 0 20px 40px -16px rgba(31, 32, 76, 0.18);
+    border-color: rgba(169, 180, 255, 0.65);
+    transform: translateY(-2px);
+  }
+
+  /* Solid variant for dense surfaces (tables, modals, dropdowns). */
+  .card-solid {
+    background: #ffffff;
+    border: 1px solid theme("colors.gray.200");
+    border-radius: theme("borderRadius.xl");
+    box-shadow: 0 1px 2px rgba(31, 32, 76, 0.04), 0 8px 24px -12px rgba(31, 32, 76, 0.1);
+  }
+
+  /* Soft brand-tinted panel (hero blocks, highlights, callouts). */
+  .panel-brand {
+    background-image: var(--s2-brand-gradient-soft);
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(169, 180, 255, 0.5);
+    border-radius: theme("borderRadius.xl");
+  }
+
+  .panel-dark {
+    background-image: theme("backgroundImage.brand-gradient-strong");
+    color: #fff;
+    border-radius: theme("borderRadius.xl");
+    box-shadow: 0 24px 48px -20px rgba(49, 46, 129, 0.55);
+  }
+
+  /* ── Page structure ───────────────────────────────────────────────────── */
+
+  .page-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between;
+  }
+
+  .page-title {
+    @apply font-display text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl;
+  }
+
+  .page-subtitle {
+    @apply mt-1.5 text-sm text-gray-500;
+  }
+
+  .section-title {
+    @apply font-display text-lg font-semibold tracking-tight text-gray-900;
+  }
+
+  .section-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-400;
+  }
+
+  .text-gradient {
+    background-image: var(--s2-brand-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────────── */
+  /* Each variant is self-contained (size modifiers stack on top). */
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm
+      font-semibold text-white transition-all duration-200 ease-smooth shadow-glow-sm
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-2
+      focus-visible:ring-offset-gray-50 disabled:cursor-not-allowed disabled:opacity-50
+      active:scale-[0.98];
+    background-image: var(--s2-brand-gradient);
+    background-size: 160% 160%;
+    background-position: 0% 50%;
+  }
+  .btn-primary:hover {
+    background-position: 100% 50%;
+    box-shadow: 0 0 0 1px rgba(85, 87, 230, 0.2), 0 8px 32px -8px rgba(85, 87, 230, 0.55);
+    filter: brightness(1.06);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200
+      bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-xs transition-all
+      duration-200 ease-smooth hover:border-primary-300 hover:text-primary-700 hover:shadow-md
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-2
+      focus-visible:ring-offset-gray-50 disabled:cursor-not-allowed disabled:opacity-50
+      active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-transparent px-4 py-2
+      text-sm font-semibold text-gray-600 transition-all duration-200 ease-smooth
+      hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2
+      focus-visible:ring-primary-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50
+      disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98];
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2
+      text-sm font-semibold text-white shadow-md transition-all duration-200 ease-smooth
+      hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60
+      focus-visible:ring-offset-2 focus-visible:ring-offset-gray-50 disabled:cursor-not-allowed
+      disabled:opacity-50 active:scale-[0.98];
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-md {
+    @apply px-4 py-2 text-sm;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-sm;
+  }
+
+  /* ── Forms ────────────────────────────────────────────────────────────── */
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-gray-700;
+  }
+
+  .field {
+    @apply block w-full rounded-lg border bg-white/90 px-3.5 py-2.5 text-sm text-gray-900 shadow-xs
+      transition-all duration-200 placeholder:text-gray-400
+      focus:border-primary-400 focus:shadow-glow-sm focus:outline-none;
+  }
+
+  .field-error {
+    @apply border-red-300 bg-red-50/60 focus:border-red-400 focus:ring-2 focus:ring-red-500/30;
+  }
+
+  .field-hint {
+    @apply mt-1.5 text-xs text-gray-500;
+  }
+
+  /* ── Badges & chips ───────────────────────────────────────────────────── */
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold
+      ring-1 ring-inset transition-colors;
+  }
+
+  .badge-primary {
+    @apply inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-[11px]
+      font-semibold text-primary-700 ring-1 ring-inset ring-primary-200/70 transition-colors;
+  }
+  .badge-success {
+    @apply inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px]
+      font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200/70 transition-colors;
+  }
+  .badge-warning {
+    @apply inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px]
+      font-semibold text-amber-700 ring-1 ring-inset ring-amber-200/70 transition-colors;
+  }
+  .badge-danger {
+    @apply inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px]
+      font-semibold text-red-700 ring-1 ring-inset ring-red-200/70 transition-colors;
+  }
+  .badge-info {
+    @apply inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px]
+      font-semibold text-sky-700 ring-1 ring-inset ring-sky-200/70 transition-colors;
+  }
+  .badge-neutral {
+    @apply inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px]
+      font-semibold text-gray-600 ring-1 ring-inset ring-gray-200/80 transition-colors;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white/80 px-3
+      py-1 text-xs font-medium text-gray-600 transition-all hover:border-primary-300 hover:text-primary-700;
+  }
+
+  /* ── Tables ───────────────────────────────────────────────────────────── */
+
+  .table-wrap {
+    @apply card-solid overflow-x-auto;
+  }
+
+  .data-table {
+    @apply min-w-full divide-y divide-gray-200 text-sm;
+  }
+
+  .data-table thead th {
+    @apply bg-gray-50/80 px-4 py-3 text-left text-[11px] font-semibold uppercase
+      tracking-wider text-gray-500 backdrop-blur-sm;
+  }
+
+  .data-table tbody td {
+    @apply px-4 py-3.5 text-gray-700;
+  }
+
+  .data-table tbody tr {
+    @apply border-t border-gray-100 transition-colors hover:bg-primary-50/40;
+  }
+
+  /* ── States: loading / empty / error ──────────────────────────────────── */
+
+  .skeleton {
+    background: linear-gradient(
+      100deg,
+      theme("colors.gray.100") 30%,
+      theme("colors.gray.50") 50%,
+      theme("colors.gray.100") 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+    border-radius: theme("borderRadius.md");
+  }
+
+  .empty-state {
+    @apply flex flex-col items-center justify-center rounded-xl border border-dashed
+      border-gray-300/80 bg-white/50 px-6 py-14 text-center;
+  }
+
+  .error-banner {
+    @apply flex items-start gap-2.5 rounded-xl border border-red-200/80 bg-red-50/80 px-4
+      py-3 text-sm font-medium text-red-700 shadow-xs;
+  }
+
+  .success-banner {
+    @apply flex items-start gap-2.5 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4
+      py-3 text-sm font-medium text-emerald-700 shadow-xs;
+  }
+
+  .info-banner {
+    @apply flex items-start gap-2.5 rounded-xl border border-primary-200/70 bg-primary-50/70 px-4
+      py-3 text-sm font-medium text-primary-800 shadow-xs;
+  }
+
+  /* ── Misc ─────────────────────────────────────────────────────────────── */
+
+  .divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent;
+  }
+
+  .nav-link {
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all
+      hover:bg-gray-100 hover:text-gray-900;
+  }
+
+  .nav-link-active {
+    @apply bg-primary-50/80 text-primary-700 shadow-xs;
+  }
+
+  .kpi-value {
+    @apply font-display text-3xl font-bold tracking-tight text-gray-900;
+  }
+}
+
+/* Keyframes referenced directly by component classes (independent of
+   whether the corresponding animate-* utility is used anywhere). */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ==========================================================================
+   Executive Hiring Report Standard Print Stylesheet
+   Ensures that browser print actions exclusively format the executive report
+   and hide all website chrome, sidebars, headers, and background elements.
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide app shells and background elements when report modal is open */
+  body:has(#executive-report-modal) > * {
+    display: none !important;
+  }
+
+  #executive-report-modal-overlay {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  #executive-report-modal {
+    position: static !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .print\\:hidden,
+  button,
+  .no-print {
+    display: none !important;
+  }
+}
+
+

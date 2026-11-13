@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FileText, Upload } from "lucide-react";
 
 import { ResumeCard } from "../../components/candidate/ResumeCard";
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { candidateApi } from "../../api/candidate";
 import type { Resume, CandidateIntelligence as Intel } from "../../types/candidate";
 
@@ -59,33 +59,40 @@ export function ResumeDashboard() {
   const processing = resumes.filter((r) => r.status === "processing" || r.status === "uploaded");
   const failed = resumes.filter((r) => r.status === "failed");
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading)
+    return (
+      <div className="space-y-6 animate-fade-up">
+        <div className="skeleton h-9 w-56" />
+        <div className="skeleton h-28 w-full" />
+        <div className="skeleton h-32 w-full" />
+        <div className="skeleton h-32 w-full" />
+      </div>
+    );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Resumes</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="page-title">Resumes</h1>
+          <p className="page-subtitle">
             Upload, manage, and analyze your resumes
           </p>
         </div>
         <button
           onClick={() => navigate("/candidate/resume/upload")}
-          className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+          className="btn-primary btn-md"
         >
+          <Upload className="h-4 w-4" aria-hidden="true" />
           Upload New Resume
         </button>
       </div>
 
-      {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>
-      )}
+      {error && <div className="error-banner">{error}</div>}
 
       {intel && (
-        <div className="rounded-lg border border-primary-200 bg-primary-50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="panel-brand p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
               <h2 className="text-sm font-semibold text-primary-900">Candidate Intelligence</h2>
               <p className="mt-1 text-xs text-primary-700">
                 {intel.total_experience_years > 0 && `${intel.total_experience_years} yrs experience`}
@@ -95,13 +102,15 @@ export function ResumeDashboard() {
               </p>
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold text-primary-700">{intel.profile_strength}%</span>
-              <p className="text-xs text-primary-600">Profile Strength</p>
+              <span className="font-display text-3xl font-bold text-gradient">
+                {intel.profile_strength}%
+              </span>
+              <p className="text-xs font-medium text-primary-600">Profile Strength</p>
             </div>
           </div>
           <button
             onClick={() => navigate("/candidate/intelligence")}
-            className="mt-3 text-xs font-medium text-primary-700 hover:text-primary-800"
+            className="mt-3 text-sm font-semibold text-primary-700 transition-colors duration-200 hover:text-primary-800"
           >
             View full intelligence report &rarr;
           </button>
@@ -109,11 +118,12 @@ export function ResumeDashboard() {
       )}
 
       {resumes.length === 0 && !loading && (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No resumes uploaded yet.</p>
+        <div className="empty-state">
+          <FileText className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+          <p className="text-sm text-gray-500">No resumes uploaded yet.</p>
           <button
             onClick={() => navigate("/candidate/resume/upload")}
-            className="mt-4 text-sm font-medium text-primary-600 hover:text-primary-700"
+            className="btn-primary btn-sm mt-4"
           >
             Upload your first resume
           </button>
@@ -122,7 +132,7 @@ export function ResumeDashboard() {
 
       {parsed.length > 0 && (
         <div>
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Parsed Resumes</h2>
+          <h2 className="section-title mb-3">Parsed Resumes</h2>
           <div className="space-y-3">
             {parsed.map((r) => (
               <ResumeCard
@@ -139,7 +149,7 @@ export function ResumeDashboard() {
 
       {processing.length > 0 && (
         <div>
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Processing</h2>
+          <h2 className="section-title mb-3">Processing</h2>
           <div className="space-y-3">
             {processing.map((r) => (
               <ResumeCard key={r.id} resume={r} />
@@ -150,7 +160,7 @@ export function ResumeDashboard() {
 
       {failed.length > 0 && (
         <div>
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Failed</h2>
+          <h2 className="section-title mb-3">Failed</h2>
           <div className="space-y-3">
             {failed.map((r) => (
               <ResumeCard key={r.id} resume={r} onDelete={handleDelete} />

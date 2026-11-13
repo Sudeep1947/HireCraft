@@ -358,10 +358,12 @@ def test_invitation_link_uses_frontend_base_url():
     from app.notifications.email_tasks import queue_invitation_email
 
     with patch("app.notifications.email_tasks.get_settings") as mock_settings:
-        mock_settings.return_value = MagicMock(
+        settings_mock = MagicMock(
             frontend_base_url="https://hirecraft.ai",
             app_name="AI Hiring Copilot",
         )
+        settings_mock.frontend_url.side_effect = lambda path: f"https://hirecraft.ai{path}"
+        mock_settings.return_value = settings_mock
         with patch("app.notifications.email_tasks._celery_available", return_value=True):
             with patch("app.workers.tasks.send_invitation_email") as mock_task:
                 mock_task.delay.return_value = MagicMock(id="task-123")

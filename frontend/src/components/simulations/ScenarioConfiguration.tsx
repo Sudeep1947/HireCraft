@@ -60,11 +60,11 @@ function SkillTagEditor({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2">
+    <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white px-3 py-2.5 shadow-xs transition-all duration-200 focus-within:border-primary-400 focus-within:shadow-glow-sm">
       {tags.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700"
+          className="badge-primary"
         >
           {tag}
           {!disabled && onMove && moveLabel && (
@@ -160,22 +160,21 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
     }
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-500";
+  const inputClass = "field disabled:bg-surface-muted disabled:text-ink-muted";
 
   return (
     <div className="space-y-6">
       {/* Scoring strategy */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Scoring strategy</h3>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <h3 className="text-sm font-semibold text-ink">Scoring strategy</h3>
+        <p className="mt-0.5 text-xs text-ink-muted">
           Relative importance of each screening dimension. Weights are bounded to [0, 1] and must
           total 100%.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {SCORING_WEIGHT_FIELDS.map((field) => (
             <label key={field.key} className="block">
-              <span className="text-sm text-gray-600">{field.label}</span>
+              <span className="field-label">{field.label}</span>
               <input
                 type="number"
                 min={0}
@@ -193,23 +192,23 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
         </div>
         <div className="mt-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">Total</span>
+            <span className="text-ink-muted">Total</span>
             <span
               className={
-                weightsBalanced ? "font-semibold text-green-600" : "font-semibold text-red-600"
+                weightsBalanced ? "font-semibold text-emerald-600" : "font-semibold text-rose-600"
               }
             >
               {totalPercent}%
             </span>
           </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-muted">
             <div
-              className={`h-full rounded-full transition-all ${weightsBalanced ? "bg-green-500" : "bg-red-500"}`}
+              className={`h-full rounded-full transition-all ${weightsBalanced ? "bg-emerald-500" : "bg-rose-500"}`}
               style={{ width: `${Math.min(100, total * 100)}%` }}
             />
           </div>
           {!weightsBalanced && (
-            <p className="mt-1 text-xs text-red-600">
+            <p className="mt-1 text-xs text-rose-600">
               Weights must total 100% (currently {totalPercent}%). Adjust the weights to balance the
               strategy.
             </p>
@@ -220,7 +219,7 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
       {/* Threshold & shortlist */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-sm text-gray-600">Minimum pass threshold ({value.threshold}%)</span>
+          <span className="field-label">Minimum pass threshold ({value.threshold}%)</span>
           <input
             type="range"
             min={0}
@@ -233,7 +232,7 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
           />
         </label>
         <label className="block">
-          <span className="text-sm text-gray-600">Shortlist size</span>
+          <span className="field-label">Shortlist size</span>
           <input
             type="number"
             min={1}
@@ -254,7 +253,7 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
       {/* Skills */}
       <div className="space-y-3">
         <div>
-          <span className="text-sm text-gray-600">Mandatory skills</span>
+          <span className="field-label">Mandatory skills</span>
           <div className="mt-1">
             <SkillTagEditor
               tags={value.requirements.mandatory_skills}
@@ -267,7 +266,7 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
           </div>
         </div>
         <div>
-          <span className="text-sm text-gray-600">Preferred skills</span>
+          <span className="field-label">Preferred skills</span>
           <div className="mt-1">
             <SkillTagEditor
               tags={value.requirements.preferred_skills}
@@ -279,21 +278,21 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
             />
           </div>
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-ink-subtle">
           Use the arrow on a skill chip to move it between the mandatory and preferred lists.
         </p>
       </div>
 
       {/* Experience range */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Experience range</h3>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <h3 className="text-sm font-semibold text-ink">Experience range</h3>
+        <p className="mt-0.5 text-xs text-ink-muted">
           Years of experience candidates must have. Leave a bound empty for &quot;no constraint&quot;
           on that side.
         </p>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="text-sm text-gray-600">Minimum years</span>
+            <span className="field-label">Minimum years</span>
             <input
               type="number"
               min={0}
@@ -305,7 +304,7 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
             />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-600">Maximum years</span>
+            <span className="field-label">Maximum years</span>
             <input
               type="number"
               min={0}
@@ -321,13 +320,13 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
 
       {/* Education */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Education</h3>
-        <p className="mt-0.5 text-xs text-gray-500">
+        <h3 className="text-sm font-semibold text-ink">Education</h3>
+        <p className="mt-0.5 text-xs text-ink-muted">
           Highest education level and how strictly it applies.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="text-sm text-gray-600">Education level</span>
+            <span className="field-label">Education level</span>
             <select
               value={value.requirements.education?.level ?? ""}
               disabled={disabled}
@@ -347,7 +346,7 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
             </select>
           </label>
           <label className="block">
-            <span className="text-sm text-gray-600">Requirement</span>
+            <span className="field-label">Requirement</span>
             <select
               value={
                 value.requirements.education?.requirement ??
@@ -376,18 +375,18 @@ export function ScenarioConfiguration({ value, onChange, disabled }: ScenarioCon
 
 export function SimulationConfigSummary({ config }: { config: SimulationConfiguration | null }) {
   if (!config) {
-    return <p className="text-sm text-gray-500">No simulation configuration recorded.</p>;
+    return <p className="text-sm text-ink-muted">No simulation configuration recorded.</p>;
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Scoring weights</h4>
+        <h4 className="section-label">Scoring weights</h4>
         <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
           {SCORING_WEIGHT_FIELDS.map((dim) => (
-            <div key={dim.key} className="flex items-center justify-between border-b border-gray-100 py-1">
-              <dt className="text-sm text-gray-600">{dim.label}</dt>
-              <dd className="text-sm font-medium text-gray-900">
+            <div key={dim.key} className="flex items-center justify-between border-b border-slate-200/70 py-1">
+              <dt className="text-sm text-ink-muted">{dim.label}</dt>
+              <dd className="text-sm font-medium text-ink">
                 {(config.scoring_weights[dim.key] * 100).toFixed(0)}%
               </dd>
             </div>
@@ -396,40 +395,40 @@ export function SimulationConfigSummary({ config }: { config: SimulationConfigur
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pass threshold</h4>
-          <p className="mt-1 text-sm font-medium text-gray-900">{config.threshold}%</p>
+          <h4 className="section-label">Pass threshold</h4>
+          <p className="mt-1 text-sm font-medium text-ink">{config.threshold}%</p>
         </div>
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Shortlist size</h4>
-          <p className="mt-1 text-sm font-medium text-gray-900">{config.shortlist_size}</p>
+          <h4 className="section-label">Shortlist size</h4>
+          <p className="mt-1 text-sm font-medium text-ink">{config.shortlist_size}</p>
         </div>
       </div>
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Requirements</h4>
+        <h4 className="section-label">Requirements</h4>
         <dl className="mt-2 space-y-2 text-sm">
           <div className="flex gap-2">
-            <dt className="w-36 shrink-0 text-gray-500">Mandatory skills</dt>
-            <dd className="text-gray-900">
+            <dt className="w-36 shrink-0 text-ink-muted">Mandatory skills</dt>
+            <dd className="text-ink">
               {config.requirements.mandatory_skills.length > 0
                 ? config.requirements.mandatory_skills.join(", ")
                 : "—"}
             </dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-36 shrink-0 text-gray-500">Preferred skills</dt>
-            <dd className="text-gray-900">
+            <dt className="w-36 shrink-0 text-ink-muted">Preferred skills</dt>
+            <dd className="text-ink">
               {config.requirements.preferred_skills.length > 0
                 ? config.requirements.preferred_skills.join(", ")
                 : "—"}
             </dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-36 shrink-0 text-gray-500">Experience</dt>
-            <dd className="text-gray-900">{experienceLabel(config.requirements)}</dd>
+            <dt className="w-36 shrink-0 text-ink-muted">Experience</dt>
+            <dd className="text-ink">{experienceLabel(config.requirements)}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="w-36 shrink-0 text-gray-500">Education</dt>
-            <dd className="text-gray-900">{educationLabel(config.requirements)}</dd>
+            <dt className="w-36 shrink-0 text-ink-muted">Education</dt>
+            <dd className="text-ink">{educationLabel(config.requirements)}</dd>
           </div>
         </dl>
       </div>

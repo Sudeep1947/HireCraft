@@ -432,7 +432,7 @@ class TestAssessmentFlow:
             headers=_auth(c_token),
         )
         assert dup.status_code == 409
-        assert dup.json()["detail"] == "ALREADY_ANSWERED"
+        assert dup.json()["error"]["message"] == "ALREADY_ANSWERED"
 
         aq = (await session.execute(
             select(AssessmentQuestion).where(
@@ -575,7 +575,7 @@ class TestAssessmentFlow:
         second = await client.post(f"/api/v1/assessments/{assessment['id']}/start",
                                    headers=_auth(token))
         assert second.status_code == 409
-        assert second.json()["detail"] == "NO_ATTEMPTS_REMAINING"
+        assert second.json()["error"]["message"] == "NO_ATTEMPTS_REMAINING"
 
     async def test_rbac_matrix(self, client, session):
         c_token = await self._candidate(client, session)

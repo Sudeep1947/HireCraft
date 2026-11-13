@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from collections import Counter
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import Interview, InterviewScorecard, Job
@@ -25,13 +25,26 @@ class InterviewAnalytics:
         self,
         recruiter_id: uuid.UUID | None = None,
         candidate_id: uuid.UUID | None = None,
+        job_ids: list[uuid.UUID] | None = None,
     ) -> dict:
+        """Aggregate interview outcomes for one audience.
+
+        Exactly one scope is honoured: a candidate's own interviews, a single
+        recruiter's, or the set of jobs the caller may read. When no scope is
+        given there is nothing to aggregate over, and an empty report is the
+        correct answer -- the previous fallback here called ``uuid.UUID(int())``
+        with no argument, so an HR caller raised a TypeError, and "fixing" it by
+        dropping the filter would have turned the endpoint into a cross-tenant
+        read of every interview's scores and recommendations.
+        """
         if candidate_id:
             interviews = await self.interview_repo.list_by_candidate(candidate_id)
         elif recruiter_id:
             interviews = await self.interview_repo.list_by_recruiter(recruiter_id)
+        elif job_ids is not None:
+            interviews = await self.interview_repo.list_by_jobs(job_ids)
         else:
-            interviews = await self.interview_repo.list_by_recruiter(uuid.UUID(int()) if not recruiter_id else recruiter_id)
+            interviews = []
 
         total = len(interviews)
         completed = [iv for iv in interviews if iv.status == "completed"]
@@ -87,20 +100,48 @@ class InterviewAnalytics:
         }
 
     async def _category_performance(self, completed: list[Interview]) -> dict:
-        from app.repositories.interview.interview import InterviewQuestionRepository
-        from app.domain.models import InterviewQuestion
+        """The average evaluated score of each question category.
 
-        q_repo = InterviewQuestionRepository(self.session)
+        One joined query for every completed interview, instead of fetching each
+        interview's questions and then reading the ``question.answer.evaluation``
+        relationship chain. That chain is lazily loaded, and a lazy load raises
+        MissingGreenlet in an async session -- which is what made this endpoint
+        answer 500 for any recruiter with a single completed, answered
+        interview, and therefore what made the Interview Analytics page show
+        only its generic "Failed to load analytics" error. Selecting the two
+        columns with explicit joins keeps every read inside the request's own
+        await, and as a side effect replaces the per-interview N+1 with one
+        query for the whole report.
+        """
+        if not completed:
+            return {}
+
+        from app.domain.models import (
+            InterviewAnswer,
+            InterviewEvaluation,
+            InterviewQuestion,
+        )
+
+        stmt = (
+            select(InterviewQuestion.category, InterviewEvaluation.overall_score)
+            .select_from(InterviewQuestion)
+            .join(
+                InterviewAnswer,
+                InterviewAnswer.question_id == InterviewQuestion.id,
+            )
+            .join(
+                InterviewEvaluation,
+                InterviewEvaluation.answer_id == InterviewAnswer.id,
+            )
+            .where(
+                InterviewQuestion.interview_id.in_([iv.id for iv in completed])
+            )
+        )
+        result = await self.session.execute(stmt)
+
         category_scores: dict[str, list[int]] = {}
-
-        for iv in completed:
-            questions = await q_repo.list_by_interview(iv.id)
-            for q in questions:
-                if q.answer and q.answer.evaluation:
-                    cat = q.category
-                    if cat not in category_scores:
-                        category_scores[cat] = []
-                    category_scores[cat].append(q.answer.evaluation.overall_score)
+        for category, score in result.all():
+            category_scores.setdefault(category, []).append(score)
 
         return {
             cat: round(sum(scores) / len(scores), 1)

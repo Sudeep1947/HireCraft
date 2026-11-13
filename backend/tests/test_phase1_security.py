@@ -402,4 +402,4 @@ async def test_wrong_password_returns_401(client: AsyncClient):
         json={"email": "wrongpw@test.com", "password": "WrongPassword"},
     )
     assert resp.status_code == 401
-    assert "Invalid email or password" in resp.json()["detail"]
+    assert "Invalid email or password" in resp.json()["error"]["message"]

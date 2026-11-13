@@ -125,8 +125,8 @@ export const skill2jobApi = {
       .then((r) => r.data),
   getPipelineTraces: () =>
     apiClient
-      .get<PipelineTraceSummary[]>("/skill2job/training/traces")
-      .then((r) => r.data),
+      .get<{ items: PipelineTraceSummary[]; total: number } | PipelineTraceSummary[]>("/skill2job/training/traces")
+      .then((r) => (Array.isArray(r.data) ? r.data : (r.data?.items ?? []))),
 
   // Phase 9 -- Time-to-Ready Engine
   calculateTimeToReady: (request: {

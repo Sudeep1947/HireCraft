@@ -3,6 +3,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.domain.fit_schemas import FitResponse
+from app.domain.intel_schemas import (
+    EvidenceIntelligenceResponse,
+    JobContextBlock,
+)
+
 
 class ScreeningConfig(BaseModel):
     weights: "ScreeningWeights | None" = None
@@ -26,6 +32,7 @@ class ScreeningResultResponse(BaseModel):
     id: uuid.UUID
     job_id: uuid.UUID
     candidate_id: uuid.UUID
+    application_id: uuid.UUID | None = None
     resume_id: uuid.UUID | None
     overall_match_score: int
     skill_match_score: int
@@ -47,6 +54,108 @@ class ScreeningResultResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ScreeningDimensionScore(BaseModel):
+    """One stored screening dimension, exposed with its source column.
+
+    The value is exactly what ``ScreeningResult`` persisted; nothing is
+    recomputed or rescaled here.
+    """
+
+    key: str
+    label: str
+    score: int
+    source_column: str
+
+
+class ScreeningExecutionState(BaseModel):
+    """Screening execution state for an application (not hiring status)."""
+
+    effective_status: str
+    recorded_status: str
+    attempts: int = 0
+    task_id: str | None = None
+    error: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
+class ScreeningApplicationContext(BaseModel):
+    id: uuid.UUID
+    job_id: uuid.UUID
+    candidate_id: uuid.UUID
+    resume_id: uuid.UUID | None = None
+    status: str
+    applied_at: datetime
+    updated_at: datetime | None = None
+    cover_letter: str | None = None
+    decision_reason: str | None = None
+    decision_comment: str | None = None
+    decided_at: datetime | None = None
+    screening: ScreeningExecutionState
+
+
+class ScreeningCandidateContext(BaseModel):
+    id: uuid.UUID
+    name: str = ""
+    email: str = ""
+    resume_id: uuid.UUID | None = None
+    has_resume: bool = False
+
+
+class ScreeningJobContext(BaseModel):
+    id: uuid.UUID
+    title: str = ""
+    company: str = ""
+    location: str = ""
+    employment_type: str = ""
+    experience_required: str | None = None
+    education_required: str | None = None
+    required_skills: list[str] = Field(default_factory=list)
+    preferred_skills: list[str] = Field(default_factory=list)
+
+
+class ScreeningFreshness(BaseModel):
+    """Which artifacts the stored screening result was produced from."""
+
+    screened_at: datetime | None = None
+    screening_resume_id: uuid.UUID | None = None
+    application_resume_id: uuid.UUID | None = None
+    resume_matches_application: bool | None = None
+    engine_version: str | None = None
+    fit_engine_version: str | None = None
+    evidence_engine_version: str | None = None
+
+
+class ScreeningIntelligenceSection(BaseModel):
+    """Per-section availability so one gap never breaks the whole detail."""
+
+    available: bool
+    reason: str | None = None
+
+
+class ApplicationScreeningDetailResponse(BaseModel):
+    """Read-only recruiter view of one application's screening context.
+
+    Every nested payload is an existing platform contract: the stored
+    ``ScreeningResult``, the Phase 2 ``FitResponse`` and the Phase 3
+    evidence intelligence response. No score is recalculated here.
+    """
+
+    application: ScreeningApplicationContext
+    candidate: ScreeningCandidateContext
+    job: ScreeningJobContext
+    screening_result: ScreeningResultResponse | None = None
+    match_breakdown: list[ScreeningDimensionScore] = Field(default_factory=list)
+    evidence_intelligence: EvidenceIntelligenceResponse | None = None
+    evidence_intelligence_section: ScreeningIntelligenceSection
+    fit: FitResponse | None = None
+    fit_section: ScreeningIntelligenceSection
+    job_context: JobContextBlock | None = None
+    job_context_section: ScreeningIntelligenceSection
+    freshness: ScreeningFreshness
+    limitations: list[str] = Field(default_factory=list)
 
 
 class CandidateRankingResponse(BaseModel):
@@ -446,6 +555,14 @@ class FairnessReportResponse(BaseModel):
     recommendations: list[str]
     trend: list[dict]
     hiring_recommendations: list[dict]
+    # Phase 7: real protected-group comparison for this job's screened
+    # population, plus the scope and methodology that must travel with the
+    # numbers so no consumer can present them without their caveats.
+    group_fairness: dict | None = None
+    metric_scope: str | None = None
+    metric_methodology: str | None = None
+    score_distribution_metrics_note: str | None = None
+    message: str | None = None
 
 
 class AdversarialVariant(BaseModel):

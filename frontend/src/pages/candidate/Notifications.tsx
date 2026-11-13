@@ -1,10 +1,36 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { candidateApi } from "../../api/candidate";
 import type { Notification } from "../../types/candidate";
 
+/**
+ * Where a notification's "View" action should take the candidate, or null when
+ * the type has no destination.
+ *
+ * The notification row carries no link, so the destination is derived from the
+ * type. Assessment events land on the assessment list, which is the only place
+ * the candidate can act on them; nothing here deep-links to an attempt, so a
+ * stale notification cannot navigate to an attempt that is not the candidate's.
+ */
+function notificationTarget(notification: Notification): string | null {
+  switch (notification.notification_type) {
+    case "assessment_assigned":
+    case "assessment_completed":
+      return "/candidate/assessments";
+    case "interview_scheduled":
+    case "interview_rescheduled":
+    case "interview_cancelled":
+    case "interview_completed":
+      return "/candidate/applications";
+    default:
+      return null;
+  }
+}
+
 export function CandidateNotifications() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,11 +59,11 @@ export function CandidateNotifications() {
   if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-2xl animate-fade-up space-y-6">
+      <div className="page-header flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="mt-1 text-sm text-gray-500">Stay updated with your activity</p>
+          <h1 className="page-title">Notifications</h1>
+          <p className="page-subtitle">Stay updated with your activity</p>
         </div>
         {notifications.length > 0 && (
           <Button variant="ghost" size="sm" onClick={handleMarkAllRead}>
@@ -46,32 +72,41 @@ export function CandidateNotifications() {
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {notifications.length === 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+          <div className="empty-state card">
             <p className="text-sm text-gray-400">No notifications yet</p>
           </div>
         )}
         {notifications.map((n) => (
           <div
             key={n.id}
-            className={`bg-white rounded-xl border p-4 flex items-start justify-between gap-4 ${
-              n.is_read ? "border-gray-200" : "border-primary-200 bg-primary-50/30"
+            className={`card flex items-start justify-between gap-4 transition-shadow hover:shadow-md ${
+              n.is_read ? "" : "border-indigo-200 bg-indigo-50/40"
             }`}
           >
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="font-medium text-sm text-gray-900">{n.title}</p>
+                <p className="text-sm font-medium text-gray-900">{n.title}</p>
                 {!n.is_read && (
-                  <span className="h-2 w-2 rounded-full bg-primary-500" />
+                  <span className="h-2 w-2 rounded-full bg-indigo-500" aria-label="Unread" />
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-1">{n.message}</p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="mt-1 text-sm text-gray-500">{n.message}</p>
+              <p className="mt-1 text-xs text-gray-400">
                 {new Date(n.created_at).toLocaleDateString()}
               </p>
             </div>
-            <div className="flex gap-1">
+            <div className="flex shrink-0 gap-1">
+              {notificationTarget(n) ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(notificationTarget(n) as string)}
+                >
+                  View
+                </Button>
+              ) : null}
               {!n.is_read && (
                 <Button variant="ghost" size="sm" onClick={() => handleMarkRead(n.id)}>
                   Read

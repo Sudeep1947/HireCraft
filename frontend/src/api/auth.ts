@@ -1,5 +1,6 @@
 import apiClient from "./client";
 import type { LoginRequest, RegisterRequest, TokenResponse, User, Organization, Invitation, OrganizationMembership } from "../types/auth";
+export type { TokenResponse } from "../types/auth";
 
 export async function login(data: LoginRequest): Promise<TokenResponse> {
   const response = await apiClient.post<TokenResponse>("/auth/login", data);
@@ -31,6 +32,40 @@ export async function logout(refreshToken?: string | null): Promise<void> {
   }
 }
 
+// ── OAuth APIs ─────────────────────────────────────────────────────
+
+export async function getOAuthProviders(): Promise<Record<string, boolean>> {
+  const response = await apiClient.get<Record<string, boolean>>("/auth/oauth/providers");
+  return response.data;
+}
+
+export async function getOAuthUrl(provider: string, redirectUri?: string): Promise<{ provider: string; url: string; state: string }> {
+  const params = redirectUri ? { redirect_uri: redirectUri } : {};
+  const response = await apiClient.get<{ provider: string; url: string; state: string }>(`/auth/oauth/${provider}/url`, { params });
+  return response.data;
+}
+
+export async function oauthCallback(
+  provider: string,
+  data: { code: string; state?: string | null; redirect_uri?: string },
+): Promise<TokenResponse> {
+  const response = await apiClient.post<TokenResponse>(`/auth/oauth/${provider}/callback`, data);
+  return response.data;
+}
+
+export async function devOAuthLogin(
+  email: string,
+  provider: "google" | "microsoft",
+  full_name?: string,
+): Promise<TokenResponse> {
+  const response = await apiClient.post<TokenResponse>("/auth/oauth/dev-login", {
+    email,
+    provider,
+    full_name,
+  });
+  return response.data;
+}
+
 // ── Organization APIs ──────────────────────────────────────────────
 
 export async function getMyOrganizations(): Promise<Organization[]> {
@@ -43,8 +78,30 @@ export async function getOrganization(orgId: string): Promise<Organization> {
   return response.data;
 }
 
-export async function createOrganization(data: { name: string; slug: string; description?: string; official_email?: string }): Promise<Organization> {
+export interface CreateOrganizationPayload {
+  name: string;
+  slug?: string;
+  description?: string;
+  official_email?: string;
+  domain?: string;
+  logo_url?: string;
+  industry?: string;
+  website?: string;
+  location?: string;
+  status?: "active" | "inactive";
+}
+
+export async function createOrganization(data: CreateOrganizationPayload): Promise<Organization> {
   const response = await apiClient.post<Organization>("/organizations", data);
+  return response.data;
+}
+
+export async function uploadOrganizationLogo(file: File): Promise<{ logo_url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await apiClient.post<{ logo_url: string }>("/organizations/logo", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return response.data;
 }
 

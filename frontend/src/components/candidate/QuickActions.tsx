@@ -19,22 +19,24 @@ export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">Quick Actions</h3>
-      <div className="grid grid-cols-2 gap-3">
+    <div className="card p-5">
+      <h3 className="section-title">Quick Actions</h3>
+      <div className="mt-4 grid grid-cols-2 gap-3">
         {actions.map((action) => (
           <button
             key={action.label}
             onClick={() => !action.disabled && navigate(action.path)}
             disabled={action.disabled}
-            className={`flex flex-col items-center gap-1 rounded-lg p-3 text-center text-sm transition-colors ${
+            className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-center transition-all duration-200 ${
               action.disabled
-                ? "bg-gray-50 text-gray-300 cursor-not-allowed"
-                : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400"
+                : "border-gray-200 bg-white/70 text-gray-700 shadow-xs hover:border-primary-300 hover:bg-primary-50/50 hover:text-primary-700 hover:shadow-md"
             }`}
           >
-            <span className="text-xl">{action.icon}</span>
-            <span className="font-medium">{action.label}</span>
+            <span className="text-xl" aria-hidden="true">
+              {action.icon}
+            </span>
+            <span className="text-sm font-medium">{action.label}</span>
             <span className="text-xs text-gray-400">{action.description}</span>
           </button>
         ))}

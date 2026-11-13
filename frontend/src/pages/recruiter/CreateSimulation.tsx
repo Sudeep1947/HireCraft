@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ClipboardList } from "lucide-react";
 
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { Button } from "../../components/ui/Button";
 import { ScenarioBuilder } from "../../components/simulations/ScenarioBuilder";
 import { ChangesSection } from "../../components/simulations/ChangesSection";
@@ -152,10 +152,17 @@ export function CreateSimulation() {
     }
   }
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-fade-up">
+        <div className="skeleton h-8 w-56" />
+        <div className="skeleton h-40 w-full" />
+        <div className="skeleton h-96 w-full" />
+      </div>
+    );
+  }
 
-  const inputClass =
-    "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500";
+  const inputClass = "field";
 
   return (
     <form
@@ -163,16 +170,16 @@ export function CreateSimulation() {
         e.preventDefault();
         void handleSave("draft");
       }}
-      className="space-y-6"
+      className="space-y-6 animate-fade-up"
     >
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">New Simulation</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="page-title">New Simulation</h1>
+          <p className="page-subtitle">
             Design a hiring-strategy &quot;what-if&quot; sandbox against a real job
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             type="button"
             variant="secondary"
@@ -201,11 +208,11 @@ export function CreateSimulation() {
       </div>
 
       {baseline && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <span className="mt-0.5 text-base leading-none">&#9888;</span>
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm shadow-xs">
+          <span className="mt-0.5 text-base leading-none text-amber-600" aria-hidden="true">&#9888;</span>
           <div>
-            <p className="font-semibold">Sandbox Scenario</p>
-            <p className="mt-0.5 text-xs text-amber-700">
+            <p className="font-semibold text-amber-900">Sandbox Scenario</p>
+            <p className="mt-0.5 text-xs text-amber-800">
               No changes have been made to the live hiring process. The job &quot;{baseline.title}
               &quot; is unaffected; this scenario is purely hypothetical.
             </p>
@@ -214,18 +221,18 @@ export function CreateSimulation() {
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="error-banner" role="alert">
           {error}
         </div>
       )}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="card p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Target job</span>
+            <span className="field-label">Target job</span>
             <select
               value={jobId}
-              className={`${inputClass} mt-1`}
+              className={inputClass}
               onChange={(e) => handleJobChange(e.target.value)}
             >
               <option value="">Select a job…</option>
@@ -237,22 +244,22 @@ export function CreateSimulation() {
             </select>
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Name</span>
+            <span className="field-label">Name</span>
             <input
               value={name}
               placeholder="e.g. Skills-first screening experiment"
-              className={`${inputClass} mt-1`}
+              className={inputClass}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
         </div>
         <label className="mt-4 block">
-          <span className="text-sm font-medium text-gray-700">Description</span>
+          <span className="field-label">Description</span>
           <textarea
             value={description}
             rows={3}
             placeholder="What hiring question does this simulation answer?"
-            className={`${inputClass} mt-1`}
+            className={inputClass}
             onChange={(e) => setDescription(e.target.value)}
           />
         </label>
@@ -267,15 +274,16 @@ export function CreateSimulation() {
       )}
 
       {jobs.length === 0 && (
-        <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-500">No jobs available to simulate.</p>
-          <p className="mt-1 text-sm text-gray-400">
+        <div className="empty-state">
+          <ClipboardList className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+          <p className="text-base font-semibold text-gray-900">No jobs available to simulate.</p>
+          <p className="mt-1 text-sm text-gray-500">
             Create a job posting first, then return here to build a simulation.
           </p>
           <button
             type="button"
             onClick={() => navigate("/recruiter/jobs/create")}
-            className="mt-4 text-sm font-medium text-primary-600 hover:text-primary-700"
+            className="btn-primary btn-sm mt-4"
           >
             Post a new job
           </button>

@@ -190,6 +190,28 @@ class AttemptListItem(BaseModel):
     submitted_at: datetime | None = None
     overall_score: float | None = None
     passed: bool | None = None
+    # Phase 12. Set when the attempt was assigned from an application, so the
+    # candidate's list can say which application the task belongs to. ``None``
+    # for a self-started practice attempt, which belongs to no application.
+    application_id: uuid.UUID | None = None
+    #: When the recruiter scheduled the assessment (the assignment time). ``None``
+    #: for a self-started practice attempt, which nobody scheduled. This is the
+    #: schedule the candidate sees; it is not a deadline, because the attempt has
+    #: none until the candidate starts it.
+    scheduled_at: datetime | None = None
+    #: The date and time the recruiter scheduled this assessment for. ``None`` when
+    #: no time was chosen, which is a real state rather than a missing value: the
+    #: candidate is told the assessment is waiting, not that it is due at some
+    #: invented moment. Never defaulted from ``scheduled_at``, because "the moment
+    #: it was assigned" and "the time it is due" are different facts.
+    scheduled_for: datetime | None = None
+    #: The link the candidate opens to take this attempt. Returned by the API so
+    #: the page and the notification both point at exactly the same place rather
+    #: than each rebuilding a route.
+    assessment_link: str | None = None
+    #: Job the assignment belongs to, when it came from an application, so the
+    #: candidate can tell which role an assessment is for.
+    job_title: str | None = None
 
 
 class AttemptListResponse(BaseModel):

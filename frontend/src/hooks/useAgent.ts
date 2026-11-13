@@ -40,7 +40,7 @@ function getSuggestedPrompts(roles: string[]): string[] {
       "Generate a security audit report",
     ];
   }
-  if (roles.includes("hr")) {
+  if (roles.includes("hr") || roles.includes("hr_manager") || roles.includes("organization_admin")) {
     return [
       "Generate this month's hiring report",
       "Show hiring pipeline status",
@@ -158,13 +158,33 @@ export function useAgent(userRoles: string[] = []): UseAgentReturn {
           });
         },
         (error) => {
+          let userFriendlyMessage = "I encountered an error processing your request. Please try again in a moment.";
+          if (error && typeof error === "string") {
+            const trimmed = error.trim();
+            if (trimmed.startsWith("{")) {
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed.error?.code === "validation_error" || JSON.stringify(parsed).includes("authorization")) {
+                  userFriendlyMessage = "Authentication required. Please refresh the page or sign in again.";
+                } else if (parsed.error?.message && !parsed.error.message.toLowerCase().includes("validation")) {
+                  userFriendlyMessage = parsed.error.message;
+                } else if (parsed.message && !parsed.message.toLowerCase().includes("validation")) {
+                  userFriendlyMessage = parsed.message;
+                }
+              } catch {
+                // keep friendly fallback
+              }
+            } else {
+              userFriendlyMessage = trimmed;
+            }
+          }
           setMessages((prev) => {
             const updated = [...prev];
             const last = updated[updated.length - 1];
             if (last && last.isStreaming) {
               updated[updated.length - 1] = {
                 ...last,
-                content: error || "I encountered an error. Please try again.",
+                content: userFriendlyMessage,
                 isStreaming: false,
               };
             }

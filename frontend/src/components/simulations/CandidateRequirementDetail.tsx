@@ -15,12 +15,12 @@ interface CandidateRequirementDetailProps {
 
 function SatisfactionBadge({ status }: { status: ChangedRequirementStatus["baseline_status"] }) {
   const colors = {
-    SATISFIED: "bg-green-100 text-green-700",
-    MISSING: "bg-red-100 text-red-700",
-    NOT_APPLICABLE: "bg-gray-100 text-gray-500",
+    SATISFIED: "badge-success",
+    MISSING: "badge-danger",
+    NOT_APPLICABLE: "badge-neutral",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colors[status]}`}>
+    <span className={colors[status]}>
       {formatSatisfactionStatus(status)}
     </span>
   );
@@ -28,13 +28,13 @@ function SatisfactionBadge({ status }: { status: ChangedRequirementStatus["basel
 
 function QualificationBadge({ change }: { change: string }) {
   const colors: Record<string, string> = {
-    newly_qualified: "bg-green-100 text-green-700",
-    newly_disqualified: "bg-red-100 text-red-700",
-    remained_qualified: "bg-blue-100 text-blue-700",
-    remained_unqualified: "bg-gray-100 text-gray-600",
+    newly_qualified: "badge-success",
+    newly_disqualified: "badge-danger",
+    remained_qualified: "badge-info",
+    remained_unqualified: "badge-neutral",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors[change] || "bg-gray-100 text-gray-600"}`}>
+    <span className={colors[change] || "badge-neutral"}>
       {QUALIFICATION_CHANGE_LABELS[change as keyof typeof QUALIFICATION_CHANGE_LABELS] || change}
     </span>
   );
@@ -42,13 +42,13 @@ function QualificationBadge({ change }: { change: string }) {
 
 function ShortlistBadge({ change }: { change: string }) {
   const colors: Record<string, string> = {
-    entered: "bg-green-100 text-green-700",
-    left: "bg-red-100 text-red-700",
-    retained: "bg-blue-100 text-blue-700",
-    never_shortlisted: "bg-gray-100 text-gray-500",
+    entered: "badge-success",
+    left: "badge-danger",
+    retained: "badge-info",
+    never_shortlisted: "badge-neutral",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colors[change] || "bg-gray-100 text-gray-600"}`}>
+    <span className={colors[change] || "badge-neutral"}>
       {SHORTLIST_CHANGE_LABELS[change as keyof typeof SHORTLIST_CHANGE_LABELS] || change}
     </span>
   );
@@ -56,17 +56,18 @@ function ShortlistBadge({ change }: { change: string }) {
 
 export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequirementDetailProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+      <div className="card-solid mx-4 max-h-[90vh] w-full max-w-2xl animate-scale-in overflow-y-auto p-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200/70 px-6 py-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">{candidate.candidate_name}</h2>
-            <p className="mt-0.5 text-sm text-gray-500">Requirement Impact Detail</p>
+            <h2 className="text-lg font-bold text-ink">{candidate.candidate_name}</h2>
+            <p className="mt-0.5 text-sm text-ink-muted">Requirement Impact Detail</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close"
+            className="rounded-lg p-2 text-ink-subtle transition-colors duration-200 hover:bg-surface-muted hover:text-ink-muted focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:outline-none"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -75,22 +76,22 @@ export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequ
         </div>
 
         {/* Score & Rank Changes */}
-        <div className="grid grid-cols-2 gap-4 border-b border-gray-200 px-6 py-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 border-b border-slate-200/70 px-6 py-4 sm:grid-cols-4">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Score</dt>
-            <dd className="mt-1 text-lg font-bold text-gray-900">
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">Score</dt>
+            <dd className="mt-1 text-lg font-bold text-ink">
               {candidate.simulation_score}
-              <span className="ml-1 text-sm text-gray-500">
+              <span className="ml-1 text-sm text-ink-muted">
                 (base {candidate.baseline_score})
               </span>
             </dd>
             <dd
               className={`text-xs font-medium ${
                 candidate.score_change > 0
-                  ? "text-green-600"
+                  ? "text-emerald-600"
                   : candidate.score_change < 0
-                    ? "text-red-600"
-                    : "text-gray-500"
+                    ? "text-rose-600"
+                    : "text-ink-muted"
               }`}
             >
               {candidate.score_change > 0 ? "+" : ""}
@@ -98,20 +99,20 @@ export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequ
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Rank</dt>
-            <dd className="mt-1 text-lg font-bold text-gray-900">
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">Rank</dt>
+            <dd className="mt-1 text-lg font-bold text-ink">
               #{candidate.simulation_rank}
-              <span className="ml-1 text-sm text-gray-500">
+              <span className="ml-1 text-sm text-ink-muted">
                 (base #{candidate.baseline_rank})
               </span>
             </dd>
             <dd
               className={`text-xs font-medium ${
                 candidate.rank_change > 0
-                  ? "text-green-600"
+                  ? "text-emerald-600"
                   : candidate.rank_change < 0
-                    ? "text-red-600"
-                    : "text-gray-500"
+                    ? "text-rose-600"
+                    : "text-ink-muted"
               }`}
             >
               {candidate.rank_change > 0 ? "+" : ""}
@@ -119,13 +120,13 @@ export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequ
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Qualification</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">Qualification</dt>
             <dd className="mt-1">
               <QualificationBadge change={candidate.qualification_change} />
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Shortlist</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-ink-muted">Shortlist</dt>
             <dd className="mt-1">
               <ShortlistBadge change={candidate.shortlist_change} />
             </dd>
@@ -134,9 +135,9 @@ export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequ
 
         {/* Affected Requirements */}
         <div className="px-6 py-4">
-          <h3 className="text-sm font-semibold text-gray-900">Changed Requirements</h3>
+          <h3 className="text-sm font-semibold text-ink">Changed Requirements</h3>
           {candidate.affected_requirements.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-ink-muted">
               No requirement changes affected this candidate&apos;s satisfaction status.
             </p>
           ) : (
@@ -144,22 +145,22 @@ export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequ
               {candidate.affected_requirements.map((req, idx) => (
                 <div
                   key={`${req.requirement_type}-${req.requirement_name}-${idx}`}
-                  className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+                  className="rounded-xl border border-slate-200/70 bg-surface-muted/70 p-4"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-medium text-gray-900">{req.requirement_name}</span>
-                      <span className="ml-2 text-xs text-gray-500 capitalize">({req.requirement_type})</span>
+                      <span className="text-sm font-medium text-ink">{req.requirement_name}</span>
+                      <span className="ml-2 text-xs text-ink-muted capitalize">({req.requirement_type})</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <SatisfactionBadge status={req.baseline_status} />
-                      <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <svg className="h-4 w-4 text-ink-subtle" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                       </svg>
                       <SatisfactionBadge status={req.simulation_status} />
                     </div>
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-ink-muted">
                     {req.baseline_satisfied === req.simulation_satisfied
                       ? "Satisfaction status unchanged"
                       : req.simulation_satisfied
@@ -174,9 +175,9 @@ export function CandidateRequirementDetail({ candidate, onClose }: CandidateRequ
 
         {/* Explanation */}
         {candidate.explanation && (
-          <div className="border-t border-gray-200 px-6 py-4">
-            <h3 className="text-sm font-semibold text-gray-900">Analysis</h3>
-            <p className="mt-2 text-sm text-gray-600">{candidate.explanation}</p>
+          <div className="border-t border-slate-200/70 px-6 py-4">
+            <h3 className="text-sm font-semibold text-ink">Analysis</h3>
+            <p className="mt-2 text-sm text-ink-muted">{candidate.explanation}</p>
           </div>
         )}
       </div>

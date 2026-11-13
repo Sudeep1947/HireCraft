@@ -12,6 +12,7 @@ overall analysis. Falls back to deterministic text when LLM is unavailable.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -455,7 +456,7 @@ class SkillGapAgent:
         ]
         gap_skills.sort(key=lambda g: (-g["count"], g["skill"]))
 
-        teaching_plan: list[TeachingPlanStep] = []
+        planned: list[dict] = []
         for entry in gap_skills[:8]:
             transferable: list[str] = []
             for analysis in analyses:
@@ -463,7 +464,6 @@ class SkillGapAgent:
                     if item.skill.lower() == entry["skill"].lower():
                         transferable.extend(item.transferable)
                         break
-            rationale: str
             if transferable:
                 rationale = (
                     f"Learning '{entry['skill']}' while already being close to "
@@ -476,33 +476,57 @@ class SkillGapAgent:
                     f"matching opportunity/ies in your local market."
                 )
                 priority = "medium" if entry["count"] > 1 else "low"
-
-            # Generate LLM-powered rationale and opportunity impact
-            llm_rationale = await self._generate_teaching_rationale(
-                skill=entry["skill"],
-                jobs=entry["jobs_demanding"][:3],
-                transferable=transferable,
-                priority=priority,
-            )
-            opportunity_impact = await self._generate_opportunity_impact(
-                skill=entry["skill"],
-                job_count=entry["count"],
-                jobs=entry["jobs_demanding"][:3],
+            planned.append(
+                {
+                    "entry": entry,
+                    "transferable": transferable,
+                    "rationale": rationale,
+                    "priority": priority,
+                }
             )
 
-            teaching_plan.append(
-                TeachingPlanStep(
-                    skill=entry["skill"],
-                    jobs_demanding=entry["jobs_demanding"][:3],
-                    priority=priority,
-                    rationale=rationale,
-                    llm_rationale=llm_rationale,
-                    opportunity_impact=opportunity_impact,
+        # Run every LLM enrichment call as one concurrent batch instead of
+        # awaiting them one at a time. These helpers only talk to the LLM
+        # client and never touch the shared session, so they are safe to run
+        # together. Awaiting them serially made this summary cost one network
+        # round-trip per skill, which pushed the aggregated /overview request
+        # past the frontend's 30s timeout.
+        total = len(planned)
+        llm_results = await asyncio.gather(
+            *[
+                self._generate_teaching_rationale(
+                    skill=p["entry"]["skill"],
+                    jobs=p["entry"]["jobs_demanding"][:3],
+                    transferable=p["transferable"],
+                    priority=p["priority"],
                 )
-            )
+                for p in planned
+            ],
+            *[
+                self._generate_opportunity_impact(
+                    skill=p["entry"]["skill"],
+                    job_count=p["entry"]["count"],
+                    jobs=p["entry"]["jobs_demanding"][:3],
+                )
+                for p in planned
+            ],
+            *([self._generate_overall_summary(analyses)] if analyses else []),
+        )
+        llm_rationales = llm_results[:total]
+        llm_impacts = llm_results[total : 2 * total]
+        llm_assessment = llm_results[2 * total] if analyses else None
 
-        # Generate overall LLM assessment
-        llm_assessment = await self._generate_overall_summary(analyses) if analyses else None
+        teaching_plan: list[TeachingPlanStep] = [
+            TeachingPlanStep(
+                skill=p["entry"]["skill"],
+                jobs_demanding=p["entry"]["jobs_demanding"][:3],
+                priority=p["priority"],
+                rationale=p["rationale"],
+                llm_rationale=llm_rationales[i],
+                opportunity_impact=llm_impacts[i],
+            )
+            for i, p in enumerate(planned)
+        ]
 
         return SkillGapSummary(
             total_analyses=len(analyses),

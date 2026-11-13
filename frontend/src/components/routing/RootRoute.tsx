@@ -21,8 +21,17 @@ export function RootRoute() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <LoadingSpinner size="lg" />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white">
+        {/* Branded boot screen: quiet gradient atmosphere behind the spinner. */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_0%,rgba(85,87,230,0.10),transparent)]"
+          aria-hidden="true"
+        />
+        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-brand-gradient opacity-15 blur-3xl animate-float" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-sky-400 to-primary-400 opacity-15 blur-3xl animate-float [animation-delay:2.5s]" aria-hidden="true" />
+        <div className="relative">
+          <LoadingSpinner size="lg" />
+        </div>
       </div>
     );
   }

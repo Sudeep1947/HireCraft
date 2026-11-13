@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "ghost";
+  variant?: "primary" | "secondary" | "danger" | "ghost" | "outline";
   size?: "sm" | "md" | "lg";
   isLoading?: boolean;
   children: ReactNode;
@@ -9,17 +9,21 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses = {
   primary:
-    "bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500",
+    "bg-brand-gradient text-white shadow-soft hover:brightness-110 hover:shadow-glow focus-visible:ring-primary-400",
   secondary:
-    "bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400",
-  danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-  ghost: "bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-400",
+    "bg-primary-50 text-primary-700 ring-1 ring-primary-200/70 hover:bg-primary-100 focus-visible:ring-primary-400",
+  danger:
+    "bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-soft hover:brightness-110 focus-visible:ring-red-400",
+  ghost:
+    "bg-transparent text-ink-muted hover:bg-primary-50 hover:text-primary-700 focus-visible:ring-primary-300",
+  outline:
+    "bg-white/80 text-ink-muted border border-slate-200 backdrop-blur-sm hover:border-primary-300 hover:text-primary-700 hover:shadow-soft focus-visible:ring-primary-300",
 };
 
 const sizeClasses = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
-  lg: "px-6 py-3 text-base",
+  sm: "px-3 py-1.5 text-sm rounded-lg",
+  md: "px-4 py-2 text-sm rounded-xl",
+  lg: "px-6 py-3 text-base rounded-xl",
 };
 
 export function Button({
@@ -33,7 +37,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >

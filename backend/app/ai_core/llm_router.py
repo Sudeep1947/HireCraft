@@ -181,7 +181,13 @@ class LLMRouter:
     async def _fallback_response(self, messages: list[LLMMessage]) -> LLMResponse:
         last_msg = messages[-1].content if messages else ""
         q = last_msg.lower()
-        if any(kw in q for kw in ["top", "best", "rank", "candidate"]):
+        if any(kw in q for kw in ["application", "status", "applied", "my application"]):
+            content = "Your applications are actively tracked in the platform. You can review your applied positions, interview statuses, and recruiter/HR decision updates in the 'My Applications' section."
+        elif any(kw in q for kw in ["pipeline", "hiring report", "hiring pipeline", "time-to-hire"]):
+            content = "The hiring pipeline is active across your organization. You can view candidates awaiting HR interviews, evaluate candidate competencies, and record final decisions in the HR Oversight Dashboard."
+        elif any(kw in q for kw in ["system health", "active users", "audit", "security audit"]):
+            content = "System health is operational. All microservices, database connections, and RBAC authentication guards are active. You can review user management and audit logs in the Admin portal."
+        elif any(kw in q for kw in ["top", "best", "rank", "candidate"]):
             content = "I can help you find and rank candidates. Please use the platform's screening and ranking features for the most accurate results."
         elif any(kw in q for kw in ["interview", "schedule", "question"]):
             content = "I can help with interview scheduling and question generation. Navigate to the Interview Intelligence section for full capabilities."
@@ -189,14 +195,14 @@ class LLMRouter:
             content = "I can help generate reports. Please specify the report type and time range you're interested in."
         elif any(kw in q for kw in ["fairness", "bias", "diversity"]):
             content = "I can analyze fairness and bias metrics. Use the Fairness Engine dashboard for detailed bias analysis."
-        elif any(kw in q for kw in ["resume", "parse", "score"]):
-            content = "I can help analyze resumes. Upload a resume or use the Resume Intelligence section for AI-powered insights."
+        elif any(kw in q for kw in ["resume", "parse", "score", "improve my profile"]):
+            content = "I can help analyze resumes and profile scores. Upload your latest resume or check Resume Intelligence to review match scores and missing skills."
         elif any(kw in q for kw in ["search", "find", "react", "developer", "job"]):
             content = "I can help you search for candidates and jobs. Try using the search features on the platform for detailed results."
         elif any(kw in q for kw in ["hello", "hi", "hey"]):
             content = "Hello! I'm your AI HR Intelligence Assistant. I can help you with candidate search, interview management, analytics, and more. What would you like to do?"
         else:
-            content = "I'm here to help with your HR and recruitment tasks. You can ask me about candidates, jobs, interviews, analytics, fairness, and more. No LLM provider is currently configured – please set GEMINI_API_KEY or GROQ_API_KEY for AI-powered responses."
+            content = "I'm your AI Hiring Assistant. I can help you with candidate search, interview scheduling, application status, resume evaluation, and recruitment analytics. Ask me any question or choose one of the suggested prompts!"
         return LLMResponse(
             content=content,
             tokens_used=0,

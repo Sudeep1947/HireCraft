@@ -163,9 +163,16 @@ export interface ResultResponse {
 export interface AttemptListItem {
   attempt_id: string;
   assessment_id: string;
+  application_id: string | null;
   assessment_title: string;
   mode: string;
   status: string;
+  /** When the recruiter assigned it. Null for a self-started attempt. */
+  scheduled_at: string | null;
+  /** Take link returned by the API, so page and notification agree. */
+  assessment_link: string | null;
+  /** Job the assignment belongs to, when it came from an application. */
+  job_title: string | null;
   started_at: string | null;
   expires_at: string | null;
   submitted_at: string | null;

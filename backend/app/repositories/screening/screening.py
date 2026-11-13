@@ -21,6 +21,15 @@ class ScreeningResultRepository(BaseRepository[ScreeningResult]):
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_application(
+        self, application_id: uuid.UUID,
+    ) -> ScreeningResult | None:
+        stmt = select(ScreeningResult).where(
+            ScreeningResult.application_id == application_id,
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def list_by_job(self, job_id: uuid.UUID) -> list[ScreeningResult]:
         stmt = (
             select(ScreeningResult)

@@ -167,6 +167,16 @@ async def upload_avatar(
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds 5 MB limit")
+
+    # Clean up any previous avatar files for this candidate
+    for allowed_ext in ALLOWED_EXTENSIONS:
+        old_file = UPLOAD_DIR / f"{current_user.id}{allowed_ext}"
+        if old_file.exists():
+            try:
+                old_file.unlink()
+            except OSError:
+                pass
+
     filename = f"{current_user.id}{ext}"
     filepath = UPLOAD_DIR / filename
     filepath.write_bytes(contents)
@@ -179,6 +189,14 @@ async def remove_avatar(
     service: ProfileService = Depends(_get_profile_service),
     current_user: User = Depends(require_role("candidate")),
 ):
+    # Clean up avatar files from disk
+    for allowed_ext in ALLOWED_EXTENSIONS:
+        old_file = UPLOAD_DIR / f"{current_user.id}{allowed_ext}"
+        if old_file.exists():
+            try:
+                old_file.unlink()
+            except OSError:
+                pass
     return await service.remove_avatar(current_user.id)
 
 

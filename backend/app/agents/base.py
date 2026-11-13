@@ -150,22 +150,22 @@ class AgentOrchestrator:
             return "analytics"
         if any(kw in m for kw in ["match", "matching", "best fit"]):
             return "job_matching"
-        if "admin" in user_roles:
+        if "admin" in user_roles or "super_admin" in user_roles:
             if any(kw in m for kw in ["user", "audit", "security", "system", "login", "health"]):
                 return "admin"
-        if "hr" in user_roles:
+        if "hr" in user_roles or "hr_manager" in user_roles or "organization_admin" in user_roles:
             if any(kw in m for kw in ["hiring", "pipeline", "headcount", "recruiter performance"]):
                 return "hr"
-        if "recruiter" in user_roles or "hr" in user_roles:
+        if "recruiter" in user_roles or "hr" in user_roles or "hr_manager" in user_roles:
             if any(kw in m for kw in ["candidate", "rank", "compare", "shortlist", "search candidate", "job"]):
                 return "recruiter"
         if "candidate" in user_roles:
             return "candidate"
         if "recruiter" in user_roles:
             return "recruiter"
-        if "hr" in user_roles:
+        if "hr" in user_roles or "hr_manager" in user_roles or "organization_admin" in user_roles:
             return "hr"
-        if "admin" in user_roles:
+        if "admin" in user_roles or "super_admin" in user_roles:
             return "admin"
         return "candidate"
 

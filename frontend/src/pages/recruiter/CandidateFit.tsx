@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { useToast } from "../../contexts/ToastContext";
 import { getJobCandidateFit } from "../../api/screening";
 import type {
@@ -12,18 +11,18 @@ import type {
 } from "../../types/screening";
 
 const STATUS_STYLES: Record<MatchStatus, string> = {
-  match: "bg-green-100 text-green-800",
-  partial: "bg-yellow-100 text-yellow-800",
-  gap: "bg-red-100 text-red-800",
-  unknown: "bg-gray-100 text-gray-600",
+  match: "badge-success",
+  partial: "badge-warning",
+  gap: "badge-danger",
+  unknown: "badge-neutral",
 };
 
 const CLASSIFICATION_STYLES: Record<string, string> = {
-  strong_match: "bg-green-100 text-green-800",
-  good_match: "bg-emerald-100 text-emerald-800",
-  partial_match: "bg-yellow-100 text-yellow-800",
-  low_match: "bg-red-100 text-red-800",
-  insufficient_evidence: "bg-gray-100 text-gray-600",
+  strong_match: "badge-success",
+  good_match: "badge-success",
+  partial_match: "badge-warning",
+  low_match: "badge-danger",
+  insufficient_evidence: "badge-neutral",
 };
 
 function formatLabel(value: string): string {
@@ -37,7 +36,7 @@ function EvidenceList({ evidence }: { evidence: FitEvidenceItem[] }) {
       {evidence.map((item, i) => (
         <li key={i} className="rounded-lg bg-gray-50 p-3">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-800">
+            <span className="badge badge-primary">
               {formatLabel(item.source)}
             </span>
             {item.context && (
@@ -57,10 +56,10 @@ function RequirementRow({ requirement }: { requirement: FitRequirementResult }) 
   const [showEvidence, setShowEvidence] = useState(false);
   const hasEvidence = requirement.evidence.length > 0;
   return (
-    <div className="border-b py-3 last:border-b-0">
+    <div className="border-b border-gray-100 py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${STATUS_STYLES[requirement.status]}`}
+          className={`badge uppercase ${STATUS_STYLES[requirement.status]}`}
         >
           {requirement.status}
         </span>
@@ -68,7 +67,7 @@ function RequirementRow({ requirement }: { requirement: FitRequirementResult }) 
           {requirement.requirement}
         </span>
         {requirement.level === "preferred" && (
-          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">
+          <span className="badge badge-info">
             preferred
           </span>
         )}
@@ -111,10 +110,20 @@ export function CandidateFit() {
     load();
   }, [id, candidateId, addToast]);
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading)
+    return (
+      <div className="space-y-6" aria-busy="true" aria-label="Loading job fit analysis">
+        <div className="skeleton h-9 w-64" />
+        <div className="skeleton h-40 w-full" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="skeleton h-96 w-full lg:col-span-2" />
+          <div className="skeleton h-96 w-full" />
+        </div>
+      </div>
+    );
   if (!fit)
     return (
-      <div className="mt-10 space-y-4 text-center">
+      <div className="empty-state mt-10 space-y-4">
         <p className="text-gray-500">Fit analysis unavailable.</p>
         <Link
           to={`/recruiter/jobs/${id}/applicants`}
@@ -126,14 +135,14 @@ export function CandidateFit() {
     );
 
   const classificationStyle =
-    CLASSIFICATION_STYLES[fit.overall.classification] || "bg-gray-100 text-gray-600";
+    CLASSIFICATION_STYLES[fit.overall.classification] || "badge-neutral";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Job Fit: {fit.candidate_name}</h1>
-          <p className="text-sm text-gray-500">{fit.job_title}</p>
+          <h1 className="page-title">Job Fit: {fit.candidate_name}</h1>
+          <p className="page-subtitle">{fit.job_title}</p>
           <Link
             to={`/recruiter/jobs/${id}/candidates/${candidateId}/intelligence`}
             className="text-sm font-medium text-primary-600 hover:text-primary-800"
@@ -143,23 +152,23 @@ export function CandidateFit() {
         </div>
         <Link
           to={`/recruiter/jobs/${id}/applicants`}
-          className="text-sm font-medium text-primary-600 hover:text-primary-800"
+          className="btn-secondary btn-sm"
         >
           Back to applicants
         </Link>
       </div>
 
-      <div className="rounded-lg border bg-white p-6">
+      <div className="card p-6">
         <div className="flex flex-wrap items-center gap-3">
           <span
-            className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${classificationStyle}`}
+            className={`badge px-3 py-1 text-sm ${classificationStyle}`}
           >
             {formatLabel(fit.overall.classification)}
           </span>
-          <span className="text-2xl font-bold text-gray-900">{fit.overall.score}</span>
+          <span className="font-display text-2xl font-bold text-gray-900">{fit.overall.score}</span>
           <span className="text-sm text-gray-400">/ 100</span>
           {fit.cached && (
-            <span className="ml-auto rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+            <span className="badge badge-neutral ml-auto">
               cached result
             </span>
           )}
@@ -168,7 +177,7 @@ export function CandidateFit() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {Object.entries(fit.overall.breakdown.components).map(([name, value]) => (
-            <div key={name} className="rounded-lg bg-gray-50 p-3">
+            <div key={name} className="rounded-xl bg-gray-50 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 {formatLabel(name)}
               </p>
@@ -185,9 +194,9 @@ export function CandidateFit() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-lg border bg-white p-6">
-            <h2 className="mb-2 font-semibold text-gray-900">Requirements</h2>
-            <div className="divide-y-0">
+          <div className="card p-6">
+            <h2 className="section-title mb-2">Requirements</h2>
+            <div>
               {fit.requirements.map((req, i) => (
                 <RequirementRow key={i} requirement={req} />
               ))}
@@ -195,8 +204,8 @@ export function CandidateFit() {
           </div>
 
           {fit.responsibilities.length > 0 && (
-            <div className="rounded-lg border bg-white p-6">
-              <h2 className="mb-2 font-semibold text-gray-900">Responsibilities</h2>
+            <div className="card p-6">
+              <h2 className="section-title mb-2">Responsibilities</h2>
               {fit.responsibilities.map((resp, i) => (
                 <ResponsibilityRow key={i} responsibility={resp} />
               ))}
@@ -205,14 +214,14 @@ export function CandidateFit() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-lg border bg-white p-6">
-            <h2 className="mb-2 font-semibold text-gray-900">Experience</h2>
+          <div className="card p-6">
+            <h2 className="section-title mb-2">Experience</h2>
             <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${STATUS_STYLES[fit.experience_alignment.status]}`}
+              className={`badge uppercase ${STATUS_STYLES[fit.experience_alignment.status]}`}
             >
               {fit.experience_alignment.status}
             </span>
-            <dl className="mt-3 space-y-1 text-sm">
+            <dl className="mt-3 space-y-1.5 text-sm">
               {fit.experience_alignment.required_years != null && (
                 <div className="flex justify-between">
                   <dt className="text-gray-500">Required</dt>
@@ -241,16 +250,16 @@ export function CandidateFit() {
             <p className="mt-2 text-sm text-gray-600">{fit.experience_alignment.reason}</p>
           </div>
 
-          <div className="rounded-lg border bg-white p-6">
-            <h2 className="mb-2 font-semibold text-gray-900">Skill Gaps</h2>
+          <div className="card p-6">
+            <h2 className="section-title mb-2">Skill Gaps</h2>
             <SkillGapGroup label="Strengths" skills={fit.skill_gaps.strengths} tone="green" />
             <SkillGapGroup label="Partial" skills={fit.skill_gaps.partial} tone="yellow" />
             <SkillGapGroup label="Gaps" skills={fit.skill_gaps.gaps} tone="red" />
             <SkillGapGroup label="Unknown" skills={fit.skill_gaps.unknown} tone="gray" />
           </div>
 
-          <div className="rounded-lg border bg-white p-6">
-            <h2 className="mb-2 font-semibold text-gray-900">About this analysis</h2>
+          <div className="card p-6">
+            <h2 className="section-title mb-2">About this analysis</h2>
             <p className="text-xs italic text-gray-500">{fit.overall.disclaimer}</p>
             <p className="mt-2 text-xs text-gray-400">
               Engine {fit.engine_version} · Extracted{" "}
@@ -267,17 +276,17 @@ export function CandidateFit() {
 function ResponsibilityRow({ responsibility }: { responsibility: { responsibility: string; alignment: string; evidence: FitEvidenceItem[] } }) {
   const [showEvidence, setShowEvidence] = useState(false);
   const alignmentStyles: Record<string, string> = {
-    strong: "bg-green-100 text-green-800",
-    moderate: "bg-yellow-100 text-yellow-800",
-    weak: "bg-orange-100 text-orange-800",
-    none: "bg-red-100 text-red-800",
+    strong: "badge-success",
+    moderate: "badge-warning",
+    weak: "badge-warning",
+    none: "badge-danger",
   };
   return (
-    <div className="border-b py-3 last:border-b-0">
+    <div className="border-b border-gray-100 py-3 last:border-b-0">
       <div className="flex items-center gap-2">
         <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${
-            alignmentStyles[responsibility.alignment] || "bg-gray-100 text-gray-600"
+          className={`badge capitalize ${
+            alignmentStyles[responsibility.alignment] || "badge-neutral"
           }`}
         >
           {responsibility.alignment}
@@ -310,10 +319,10 @@ function SkillGapGroup({
 }) {
   if (skills.length === 0) return null;
   const tones = {
-    green: "bg-green-100 text-green-800",
-    yellow: "bg-yellow-100 text-yellow-800",
-    red: "bg-red-100 text-red-800",
-    gray: "bg-gray-100 text-gray-600",
+    green: "badge-success",
+    yellow: "badge-warning",
+    red: "badge-danger",
+    gray: "badge-neutral",
   };
   return (
     <div className="mb-3 last:mb-0">
@@ -322,7 +331,7 @@ function SkillGapGroup({
         {skills.map((skill) => (
           <span
             key={skill}
-            className={`rounded px-2 py-0.5 text-xs font-medium ${tones[tone]}`}
+            className={`badge ${tones[tone]}`}
           >
             {skill}
           </span>

@@ -17,6 +17,11 @@ class OrganizationRepository(BaseRepository[Organization]):
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_name(self, name: str) -> Organization | None:
+        stmt = select(Organization).where(func.lower(Organization.name) == func.lower(name))
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_by_id_with_memberships(self, org_id: uuid.UUID) -> Organization | None:
         stmt = (
             select(Organization)

@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from "react";
+import { Eraser, Download, RotateCcw } from "lucide-react";
 import { useAgent } from "../../hooks/useAgent";
 import { ChatMessageList } from "../../components/agent/ChatMessageList";
 import { ChatInput } from "../../components/agent/ChatInput";
@@ -64,7 +65,7 @@ export function AIChat() {
   }, [messages]);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-white">
+    <div className="flex h-[calc(100vh-4rem)] animate-fade-in overflow-hidden rounded-2xl border border-gray-200/80 bg-white/70 backdrop-blur-xl shadow-card">
       <ConversationSidebar
         conversations={conversations}
         activeId={activeConversationId}
@@ -72,45 +73,50 @@ export function AIChat() {
         onNew={startNewConversation}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="border-b bg-white px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-800">AI HR Intelligence Assistant</h1>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-200/80 bg-white/80 px-5 py-3 backdrop-blur-sm">
+          <div className="min-w-0">
+            <h1 className="truncate font-display text-lg font-semibold tracking-tight text-gray-900">
+              AI HR Intelligence Assistant
+            </h1>
             <p className="text-xs text-gray-500">
               Ask questions about recruitment, candidates, analytics, and more
               {providerUsed && (
-                <span className="ml-2 text-indigo-500 font-medium">via {providerUsed}</span>
+                <span className="ml-2 font-medium text-primary-600">via {providerUsed}</span>
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {agentUsed && (
-              <span className="text-xs bg-indigo-100 text-indigo-700 rounded-full px-2.5 py-1 font-medium capitalize">
+              <span className="badge-primary mr-1 hidden sm:inline-flex">
                 {agentUsed.replace("_", " ")} Agent
               </span>
             )}
             <button
               onClick={retryLastMessage}
               disabled={isLoading || messages.length === 0}
-              className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 px-2 py-1 rounded hover:bg-gray-100"
+              className="btn-ghost btn-sm"
               title="Retry last message"
             >
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
               Retry
             </button>
             <button
               onClick={handleExport}
               disabled={messages.length === 0}
-              className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 px-2 py-1 rounded hover:bg-gray-100"
+              className="btn-ghost btn-sm"
               title="Export conversation"
             >
+              <Download className="h-3.5 w-3.5" aria-hidden="true" />
               Export
             </button>
             <button
               onClick={clearChat}
               disabled={messages.length === 0}
-              className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-50 px-2 py-1 rounded hover:bg-gray-100"
+              className="btn-ghost btn-sm"
               title="Clear chat"
             >
+              <Eraser className="h-3.5 w-3.5" aria-hidden="true" />
               Clear
             </button>
           </div>

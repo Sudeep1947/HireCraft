@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Boxes, Download, History, ListChecks, PlayCircle, Sparkles, Trash2 } from "lucide-react";
 
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
@@ -68,10 +69,10 @@ const SKILL_CATEGORY_OPTIONS = [
 ];
 
 const STATUS_STYLES: Record<string, string> = {
-  queued: "bg-yellow-100 text-yellow-700",
-  running: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
+  queued: "badge-warning",
+  running: "badge-info",
+  completed: "badge-success",
+  failed: "badge-danger",
 };
 
 function formatDate(value: string | null): string {
@@ -281,52 +282,52 @@ export function DemoCenter() {
   };
 
   if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
-  if (!status) return <div className="mt-10 text-center text-gray-500">Failed to load demo platform</div>;
+  if (!status)
+    return <div className="error-banner mt-10 mx-auto max-w-xl">Failed to load demo platform</div>;
 
   const latest = status.latest_run;
   const running = isActive(latest);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">AI Demo Center</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Generate realistic demo data and simulate the full recruitment pipeline.
-        </p>
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">AI Demo Center</h1>
+          <p className="page-subtitle">
+            Generate realistic demo data and simulate the full recruitment pipeline.
+          </p>
+        </div>
+        <span className="badge-primary self-start">
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Sandbox
+        </span>
       </div>
 
       {latest && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <div className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  STATUS_STYLES[latest.status] ?? "bg-gray-100 text-gray-700"
-                }`}
-              >
+            <div className="flex flex-wrap items-center gap-3">
+              <span className={STATUS_STYLES[latest.status] ?? "badge-neutral"}>
                 {statusLabel(latest.status)}
               </span>
-              <span className="text-sm text-gray-700">
+              <span className="text-sm font-medium text-gray-700">
                 <StageLabel stage={latest.current_stage} />
               </span>
               <span className="text-sm text-gray-500">{formatDate(latest.created_at)}</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="h-2 w-40 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-2 w-40 overflow-hidden rounded-full bg-gray-100">
                 <div
-                  className={`h-full rounded-full transition-all ${running ? "animate-pulse bg-primary-600" : "bg-primary-600"}`}
+                  className={`h-full rounded-full bg-gradient-to-r from-primary-500 to-violet-500 transition-all duration-500 ease-smooth ${running ? "animate-pulse" : ""}`}
                   style={{ width: `${latest.progress}%` }}
                 />
               </div>
-              <span className="text-sm font-medium text-gray-700">{latest.progress}%</span>
+              <span className="text-sm font-semibold text-gray-700">{latest.progress}%</span>
             </div>
           </div>
           {latest.stage_message && (
-            <p className="mt-2 text-xs text-gray-500">{latest.stage_message}</p>
+            <p className="mt-3 text-xs text-gray-500">{latest.stage_message}</p>
           )}
-          {latest.error && (
-            <p className="mt-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{latest.error}</p>
-          )}
+          {latest.error && <p className="error-banner mt-3 text-xs">{latest.error}</p>}
         </div>
       )}
 
@@ -345,25 +346,35 @@ export function DemoCenter() {
           { label: "Users", value: status.totals.users ?? 0 },
           { label: "Runs", value: status.runs.length },
         ].map((item) => (
-          <div key={item.label} className="rounded-lg border border-gray-200 bg-white p-4">
+          <div key={item.label} className="card card-hover p-4">
             <p className="text-xs font-medium text-gray-500">{item.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900">{item.value}</p>
+            <p className="mt-1 font-display text-2xl font-bold tracking-tight text-gray-900">
+              {item.value}
+            </p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-gray-900">Start Generation</h2>
+        <div className="card p-5">
+          <h2 className="section-title flex items-center gap-2 text-base">
+            <span className="rounded-lg bg-primary-50 p-1.5 text-primary-600">
+              <PlayCircle className="h-4 w-4" aria-hidden="true" />
+            </span>
+            Start Generation
+          </h2>
           <p className="mt-1 text-xs text-gray-500">
             Choose a scenario for a preset configuration, or leave it empty and customize below.
           </p>
 
           <div className="mt-4 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Scenario</label>
+              <label className="field-label" htmlFor="demo-scenario">
+                Scenario
+              </label>
               <select
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                id="demo-scenario"
+                className="field"
                 value={selectedScenario}
                 onChange={(e) => applyScenario(e.target.value)}
               >
@@ -379,7 +390,7 @@ export function DemoCenter() {
                   const scenario = scenarios.find((s) => s.slug === selectedScenario);
                   if (!scenario) return null;
                   return (
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1.5 text-xs text-gray-500">
                       {scenario.description}
                       {scenario.tags && scenario.tags.length > 0 && (
                         <span className="ml-2 text-gray-400">
@@ -441,9 +452,12 @@ export function DemoCenter() {
                 onChange={(e) => set("num_companies", e.target.value)}
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700">Hiring difficulty</label>
+                <label className="field-label" htmlFor="demo-difficulty">
+                  Hiring difficulty
+                </label>
                 <select
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  id="demo-difficulty"
+                  className="field"
                   value={form.hiring_difficulty}
                   onChange={(e) => set("hiring_difficulty", e.target.value as HiringDifficulty)}
                 >
@@ -455,8 +469,8 @@ export function DemoCenter() {
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Skill categories</label>
-                <div className="mt-1 flex flex-wrap gap-3">
+                <span className="field-label">Skill categories</span>
+                <div className="mt-1 flex flex-wrap gap-2">
                   {SKILL_CATEGORY_OPTIONS.map((opt) => {
                     const selected = form.skill_categories
                       .split(",")
@@ -464,7 +478,10 @@ export function DemoCenter() {
                       .filter(Boolean)
                       .includes(opt.value);
                     return (
-                      <label key={opt.value} className="flex items-center gap-1.5 text-sm text-gray-700">
+                      <label
+                        key={opt.value}
+                        className={`chip cursor-pointer ${selected ? "border-primary-300 bg-primary-50 text-primary-700" : ""}`}
+                      >
                         <input
                           type="checkbox"
                           checked={selected}
@@ -485,14 +502,17 @@ export function DemoCenter() {
                     );
                   })}
                 </div>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1.5 text-xs text-gray-400">
                   Leave empty to use the general technical skill pool.
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Resume format</label>
+                <label className="field-label" htmlFor="demo-resume-format">
+                  Resume format
+                </label>
                 <select
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  id="demo-resume-format"
+                  className="field"
                   value={form.resume_format}
                   onChange={(e) => set("resume_format", e.target.value as ResumeFormat)}
                 >
@@ -537,7 +557,10 @@ export function DemoCenter() {
                 { key: "include_reports" as const, label: "Generate analytics reports" },
                 { key: "include_agent_indexing" as const, label: "Index agent knowledge" },
               ].map((item) => (
-                <label key={item.key} className="flex items-center gap-2 text-sm text-gray-700">
+                <label
+                  key={item.key}
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-primary-50/50"
+                >
                   <input
                     type="checkbox"
                     checked={form[item.key]}
@@ -556,10 +579,21 @@ export function DemoCenter() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-gray-900">Run History</h2>
+          <div className="card p-5">
+            <h2 className="section-title flex items-center gap-2 text-base">
+              <span className="rounded-lg bg-violet-50 p-1.5 text-violet-600">
+                <History className="h-4 w-4" aria-hidden="true" />
+              </span>
+              Run History
+            </h2>
             {status.runs.length === 0 ? (
-              <p className="mt-3 text-sm text-gray-500">No demo runs yet.</p>
+              <div className="empty-state mt-3">
+                <History className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+                <h3 className="text-base font-semibold text-gray-900">No demo runs yet.</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Start a generation to see the run history here.
+                </p>
+              </div>
             ) : (
               <div className="mt-3 space-y-2">
                 {status.runs.map((run) => (
@@ -571,12 +605,10 @@ export function DemoCenter() {
                         .then(setDetail)
                         .catch(() => addToast("Failed to load run details", "error"));
                     }}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white/70 px-3 py-2.5 text-left text-sm transition-all duration-200 hover:border-primary-300 hover:bg-primary-50/50 hover:shadow-soft"
                   >
                     <span className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[run.status] ?? "bg-gray-100 text-gray-700"}`}
-                      >
+                      <span className={STATUS_STYLES[run.status] ?? "badge-neutral"}>
                         {statusLabel(run.status)}
                       </span>
                       <span className="text-gray-700">
@@ -590,8 +622,13 @@ export function DemoCenter() {
             )}
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-gray-900">Current Run Events</h2>
+          <div className="card p-5">
+            <h2 className="section-title flex items-center gap-2 text-base">
+              <span className="rounded-lg bg-sky-50 p-1.5 text-sky-600">
+                <ListChecks className="h-4 w-4" aria-hidden="true" />
+              </span>
+              Current Run Events
+            </h2>
             {!detail ? (
               <p className="mt-3 text-sm text-gray-500">
                 {running ? "Loading run events..." : "Select a run to view its events."}
@@ -599,10 +636,10 @@ export function DemoCenter() {
             ) : (
               <>
                 <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                  <span className="font-medium">{detail.run.progress}%</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                  <span className="font-semibold">{detail.run.progress}%</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className={`h-full rounded-full bg-primary-600 ${isActive(detail.run) ? "animate-pulse" : ""}`}
+                      className={`h-full rounded-full bg-gradient-to-r from-primary-500 to-violet-500 transition-all duration-500 ease-smooth ${isActive(detail.run) ? "animate-pulse" : ""}`}
                       style={{ width: `${detail.run.progress}%` }}
                     />
                   </span>
@@ -613,12 +650,17 @@ export function DemoCenter() {
                     <li className="text-gray-500">No events recorded yet.</li>
                   ) : (
                     detail.events.map((event) => (
-                      <li key={event.id} className="flex items-start gap-2 border-b border-gray-100 py-1.5 last:border-0">
-                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-400" />
+                      <li
+                        key={event.id}
+                        className="flex items-start gap-2.5 border-b border-gray-100 py-2 last:border-0"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-400" />
                         <div>
                           <p className="text-gray-700">{event.message}</p>
                           {event.details && (
-                            <p className="text-xs text-gray-400">{JSON.stringify(event.details)}</p>
+                            <p className="mt-0.5 text-xs text-gray-400">
+                              {JSON.stringify(event.details)}
+                            </p>
                           )}
                         </div>
                       </li>
@@ -631,26 +673,33 @@ export function DemoCenter() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-5">
+      <div className="card flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Dataset Tools</h2>
+          <h2 className="section-title flex items-center gap-2 text-base">
+            <span className="rounded-lg bg-red-50 p-1.5 text-red-600">
+              <Boxes className="h-4 w-4" aria-hidden="true" />
+            </span>
+            Dataset Tools
+          </h2>
           <p className="mt-1 text-xs text-gray-500">
             Export the current demo dataset as JSON, or wipe all demo-generated data.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="secondary" onClick={() => void handleExport()} isLoading={exporting}>
+            <Download className="h-4 w-4" aria-hidden="true" />
             {exporting ? "Exporting..." : "Export Dataset"}
           </Button>
           <Button variant="danger" onClick={() => void handleReset()} isLoading={resetting}>
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
             {resetting ? "Resetting..." : "Reset Demo Data"}
           </Button>
         </div>
       </div>
 
       {exportData && (
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-gray-900">Export Preview</h2>
+        <div className="card p-5">
+          <h2 className="section-title text-base">Export Preview</h2>
           <p className="mt-1 text-xs text-gray-500">
             Generated {formatDate(exportData.generated_at)}.{" "}
             {exportData.summary && typeof exportData.summary === "object"
@@ -659,7 +708,7 @@ export function DemoCenter() {
                   .join(" · ")
               : ""}
           </p>
-          <pre className="mt-3 max-h-96 overflow-auto rounded-lg bg-gray-50 p-4 text-xs text-gray-700">
+          <pre className="mt-3 max-h-96 overflow-auto rounded-xl bg-gray-950 p-4 font-mono text-xs text-gray-100">
             {JSON.stringify(exportData, null, 2)}
           </pre>
         </div>

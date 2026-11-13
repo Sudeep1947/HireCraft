@@ -83,41 +83,46 @@ export function RecruiterJobEdit() {
   }
 
   if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
-  if (!form) return <div className="mt-10 text-center text-gray-500">Job not found</div>;
+  if (!form)
+    return (
+      <div className="empty-state mt-10">
+        <p className="text-gray-500">Job not found</p>
+      </div>
+    );
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <button onClick={() => navigate(`/recruiter/jobs/${id}`)} className="mb-2 text-sm text-primary-600 hover:text-primary-700">
+    <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
+      <div>
+        <button onClick={() => navigate(`/recruiter/jobs/${id}`)} className="btn-ghost btn-sm -ml-3 mb-2 text-primary-600 hover:text-primary-700">
           &larr; Back to Job
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Job</h1>
+        <h1 className="page-title">Edit Job</h1>
       </div>
 
-      {error && <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>}
+      {error && <div className="error-banner" role="alert">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Basic Information</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Basic Information</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Job Title *</label>
-              <input required className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Job Title *</label>
+              <input required className="field"
                 value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Company *</label>
-              <input required className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Company *</label>
+              <input required className="field"
                 value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Department</label>
-              <input className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Department</label>
+              <input className="field"
                 value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Employment Type</label>
-              <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Employment Type</label>
+              <select className="field"
                 value={form.employment_type} onChange={(e) => setForm({ ...form, employment_type: e.target.value })}>
                 <option value="full_time">Full Time</option>
                 <option value="part_time">Part Time</option>
@@ -126,40 +131,40 @@ export function RecruiterJobEdit() {
                 <option value="freelance">Freelance</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Location *</label>
-              <input required className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Location *</label>
+              <input required className="field"
                 value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Experience Required</label>
-              <input className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Experience Required</label>
+              <input className="field"
                 value={form.experience_required || ""} onChange={(e) => setForm({ ...form, experience_required: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Education Required</label>
-              <input className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Education Required</label>
+              <input className="field"
                 value={form.education_required || ""} onChange={(e) => setForm({ ...form, education_required: e.target.value })} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Salary</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Salary</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Min Salary</label>
-              <input type="number" className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Min Salary</label>
+              <input type="number" className="field"
                 value={form.salary_min ?? ""} onChange={(e) => setForm({ ...form, salary_min: e.target.value ? Number(e.target.value) : null })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Max Salary</label>
-              <input type="number" className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Max Salary</label>
+              <input type="number" className="field"
                 value={form.salary_max ?? ""} onChange={(e) => setForm({ ...form, salary_max: e.target.value ? Number(e.target.value) : null })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Currency</label>
-              <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Currency</label>
+              <select className="field"
                 value={form.salary_currency} onChange={(e) => setForm({ ...form, salary_currency: e.target.value })}>
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
@@ -170,71 +175,71 @@ export function RecruiterJobEdit() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Skills</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Skills</h2>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">Required Skills</label>
+            <label className="field-label">Required Skills</label>
             <div className="mt-1 flex gap-2">
-              <input className="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <input className="field flex-1"
                 value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addRequiredSkill())} placeholder="Type and press Enter" />
-              <button type="button" onClick={addRequiredSkill} className="rounded-lg bg-primary-600 px-3 py-2 text-sm text-white hover:bg-primary-700">Add</button>
+              <button type="button" onClick={addRequiredSkill} className="btn-primary btn-md">Add</button>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.required_skills.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1 rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-800">
+                <span key={s} className="badge badge-primary gap-1.5 px-3 py-1">
                   {s}
-                  <button type="button" onClick={() => setForm({ ...form, required_skills: form.required_skills.filter((x) => x !== s) })} className="text-primary-600 hover:text-primary-800">&times;</button>
+                  <button type="button" onClick={() => setForm({ ...form, required_skills: form.required_skills.filter((x) => x !== s) })} className="text-primary-600 hover:text-primary-800" aria-label={`Remove ${s}`}>&times;</button>
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Preferred Skills</label>
+            <label className="field-label">Preferred Skills</label>
             <div className="mt-1 flex gap-2">
-              <input className="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <input className="field flex-1"
                 value={prefSkillInput} onChange={(e) => setPrefSkillInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPreferredSkill())} placeholder="Type and press Enter" />
-              <button type="button" onClick={addPreferredSkill} className="rounded-lg bg-primary-600 px-3 py-2 text-sm text-white hover:bg-primary-700">Add</button>
+              <button type="button" onClick={addPreferredSkill} className="btn-primary btn-md">Add</button>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.preferred_skills.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800">
+                <span key={s} className="badge badge-neutral gap-1.5 px-3 py-1">
                   {s}
-                  <button type="button" onClick={() => setForm({ ...form, preferred_skills: form.preferred_skills.filter((x) => x !== s) })} className="text-gray-600 hover:text-gray-800">&times;</button>
+                  <button type="button" onClick={() => setForm({ ...form, preferred_skills: form.preferred_skills.filter((x) => x !== s) })} className="text-gray-600 hover:text-gray-800" aria-label={`Remove ${s}`}>&times;</button>
                 </span>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Description</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Description</h2>
           <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Job Description *</label>
-              <textarea required rows={6} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Job Description *</label>
+              <textarea required rows={6} className="field"
                 value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Benefits</label>
-              <textarea rows={4} className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Benefits</label>
+              <textarea rows={4} className="field"
                 value={form.benefits || ""} onChange={(e) => setForm({ ...form, benefits: e.target.value })} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Settings</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Settings</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Application Deadline</label>
-              <input type="date" className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Application Deadline</label>
+              <input type="date" className="field"
                 value={form.application_deadline || ""} onChange={(e) => setForm({ ...form, application_deadline: e.target.value || null })} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Status</label>
-              <select className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <div>
+              <label className="field-label">Status</label>
+              <select className="field"
                 value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -246,11 +251,11 @@ export function RecruiterJobEdit() {
 
         <div className="flex justify-end gap-3">
           <button type="button" onClick={() => navigate(`/recruiter/jobs/${id}`)}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            className="btn-secondary btn-md">
             Cancel
           </button>
           <button type="submit" disabled={saving}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50">
+            className="btn-primary btn-md">
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>

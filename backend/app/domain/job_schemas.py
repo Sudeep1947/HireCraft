@@ -4,6 +4,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field
 
 from app.domain.enums import ApplicationStatus, EmploymentType, JobStatus
+from app.domain.screening_schemas import ScreeningResultResponse
 
 
 class JobCreate(BaseModel):
@@ -99,6 +100,8 @@ class JobApplicationCreate(BaseModel):
 
 class JobApplicationUpdate(BaseModel):
     status: ApplicationStatus
+    reason: str | None = Field(default=None, max_length=255)
+    comment: str | None = None
 
 
 class JobApplicationResponse(BaseModel):
@@ -108,6 +111,11 @@ class JobApplicationResponse(BaseModel):
     resume_id: uuid.UUID | None
     cover_letter: str | None
     status: str
+    screening_status: str = "not_started"
+    effective_screening_status: str = "not_started"
+    screening_task_id: str | None = None
+    screening_error: str | None = None
+    screening_completed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -121,14 +129,62 @@ class JobApplicationDetailResponse(BaseModel):
     resume_id: uuid.UUID | None
     cover_letter: str | None
     status: str
+    screening_status: str = "not_started"
+    effective_screening_status: str = "not_started"
+    screening_task_id: str | None = None
+    screening_error: str | None = None
+    screening_started_at: datetime | None = None
+    screening_completed_at: datetime | None = None
+    screening_attempt_count: int = 0
+    screening_attempts: int = 0
+    screening_result: ScreeningResultResponse | None = None
+    overall_match_score: int | None = None
+    score: int | None = None
+    recommendation: str | None = None
+    strength_level: str | None = None
+    strength: str | None = None
+    decision_reason: str | None = None
+    decision_comment: str | None = None
+    decided_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     candidate_name: str = ""
     candidate_email: str = ""
     job_title: str = ""
+    company: str = ""
+    location: str = ""
+    employment_type: str = ""
     recruiter_notes: list["RecruiterNoteResponse"] = []
 
     model_config = {"from_attributes": True}
+
+
+class ApplicantSummaryResponse(BaseModel):
+    job_id: uuid.UUID
+    total_applicants: int
+    total_screened: int
+    not_screened: int
+    queued: int
+    running: int
+    failed: int
+    skipped: int
+    average_score: float | None = None
+    high_match_count: int
+    status_breakdown: dict[str, int]
+    application_status_breakdown: dict[str, int] = Field(default_factory=dict)
+    screening_status_breakdown: dict[str, int]
+    recommendation_breakdown: dict[str, int]
+    strength_level_breakdown: dict[str, int] = Field(default_factory=dict)
+
+
+class JobApplicantsResponse(BaseModel):
+    job: JobResponse
+    items: list[JobApplicationDetailResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    summary: ApplicantSummaryResponse
 
 
 class SavedJobResponse(BaseModel):
@@ -145,6 +201,9 @@ class JobApplicationListItem(BaseModel):
     resume_id: uuid.UUID | None
     cover_letter: str | None
     status: str
+    screening_status: str = "not_started"
+    screening_error: str | None = None
+    screening_completed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     job_title: str = ""

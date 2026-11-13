@@ -739,3 +739,33 @@ export function simulationMetricLabel(metric: string): string {
 export function formatScoreDelta(value: number): string {
   return value > 0 ? `+${value}` : `${value}`;
 }
+
+// ─── Optional manual shortlist (hypothetical → live, human-confirmed) ───
+
+export interface SimulationShortlistApplyRequest {
+  /** Exactly the candidates the recruiter checked and explicitly confirmed. */
+  candidate_ids: string[];
+  /** Optional: apply from a specific completed execution. */
+  execution_id?: string;
+}
+
+export interface SimulationShortlistCandidateResult {
+  candidate_id: string;
+  candidate_name: string;
+  application_id: string;
+  previous_status: string;
+  new_status: string;
+  updated: boolean;
+}
+
+export interface SimulationShortlistApplyResponse {
+  simulation_id: string;
+  execution_id: string;
+  job_id: string;
+  /** The simulation is never overwritten; stays "completed". */
+  scenario_status: string;
+  shortlist_status: string;
+  applied: boolean;
+  updated: SimulationShortlistCandidateResult[];
+  skipped: SimulationShortlistCandidateResult[];
+}

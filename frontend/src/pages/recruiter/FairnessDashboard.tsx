@@ -41,33 +41,45 @@ export function RecruiterFairnessDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      <div className="space-y-6" aria-busy="true" aria-label="Loading fairness dashboard">
+        <div className="skeleton h-9 w-80" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="card p-5">
+              <div className="skeleton h-4 w-24" />
+              <div className="skeleton mt-2 h-8 w-16" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <div className="skeleton h-64 w-full" />
+          <div className="skeleton h-64 w-full" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">{error}</p>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="error-banner" role="alert">
+          <p>{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="space-y-8 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Fairness & Bias Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Monitor AI fairness, detect bias, and ensure ethical hiring.</p>
+        <h1 className="page-title">Fairness & Bias Dashboard</h1>
+        <p className="page-subtitle">Monitor AI fairness, detect bias, and ensure ethical hiring.</p>
       </div>
 
       {overview && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="col-span-1 md:col-span-2 flex justify-center">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <div className="col-span-1 flex justify-center md:col-span-2">
               <FairnessScoreCard score={overview.overall_fairness_score} label="Overall Fairness" />
             </div>
             <DiversityStat label="Total Screened" value={overview.total_screened} color="blue" />
@@ -75,7 +87,7 @@ export function RecruiterFairnessDashboard() {
             <DiversityStat label="Total Jobs" value={overview.total_jobs} color="purple" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <DiversityStat
               label="Gender Diversity Index"
               value={overview.diversity_indicators?.gender_diversity_index?.toFixed(3) || "N/A"}
@@ -95,10 +107,10 @@ export function RecruiterFairnessDashboard() {
         </>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {metrics && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Fairness Metrics</h2>
+          <div className="card p-6">
+            <h2 className="section-title mb-4">Fairness Metrics</h2>
             <FairnessMetricsTable
               metrics={{
                 statistical_parity_difference: metrics.statistical_parity_difference,
@@ -109,47 +121,47 @@ export function RecruiterFairnessDashboard() {
                 composite_fairness_score: metrics.composite_fairness_score,
               }}
             />
-            <p className="text-xs text-gray-500 mt-2">Based on {metrics.data_points} data points</p>
+            <p className="mt-2 text-xs text-gray-500">Based on {metrics.data_points} data points</p>
           </div>
         )}
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Bias Alerts</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Bias Alerts</h2>
           <BiasAlertPanel alerts={alerts} />
         </div>
       </div>
 
       {overview?.diversity_indicators && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Candidate Distribution</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Candidate Distribution</h2>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Gender Distribution</h3>
+              <h3 className="mb-2 text-sm font-medium text-gray-700">Gender Distribution</h3>
               {Object.entries(overview.diversity_indicators.gender_distribution || {}).map(([gender, count]) => (
-                <div key={gender} className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-gray-600 w-32">{gender.replace(/_/g, " ")}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
+                <div key={gender} className="mb-1 flex items-center gap-2">
+                  <span className="w-32 text-sm text-gray-600">{gender.replace(/_/g, " ")}</span>
+                  <div className="h-2 flex-1 rounded-full bg-gray-100">
                     <div
-                      className="h-2 rounded-full bg-blue-500"
+                      className="h-2 rounded-full bg-sky-500"
                       style={{ width: `${(count / Math.max(overview.total_candidates, 1)) * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-gray-500 w-8">{count}</span>
+                  <span className="w-8 text-xs text-gray-500">{count}</span>
                 </div>
               ))}
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Location Distribution</h3>
+              <h3 className="mb-2 text-sm font-medium text-gray-700">Location Distribution</h3>
               {Object.entries(overview.diversity_indicators.location_distribution || {}).map(([loc, count]) => (
-                <div key={loc} className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-gray-600 w-32 truncate">{loc}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
+                <div key={loc} className="mb-1 flex items-center gap-2">
+                  <span className="w-32 truncate text-sm text-gray-600">{loc}</span>
+                  <div className="h-2 flex-1 rounded-full bg-gray-100">
                     <div
-                      className="h-2 rounded-full bg-purple-500"
+                      className="h-2 rounded-full bg-violet-500"
                       style={{ width: `${(count / Math.max(overview.total_candidates, 1)) * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-gray-500 w-8">{count}</span>
+                  <span className="w-8 text-xs text-gray-500">{count}</span>
                 </div>
               ))}
             </div>

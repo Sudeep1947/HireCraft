@@ -68,6 +68,7 @@ export interface Invitation {
   created_at: string;
   accepted_at: string | null;
   email_status?: string;
+  accept_url?: string;
 }
 
 export interface Organization {
@@ -78,6 +79,9 @@ export interface Organization {
   official_email?: string;
   domain?: string;
   logo_url?: string;
+  industry?: string;
+  website?: string;
+  location?: string;
   status: string;
   created_at: string;
   updated_at: string;

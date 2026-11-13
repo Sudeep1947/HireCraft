@@ -278,10 +278,17 @@ async def test_withdraw_finalized_application(client: AsyncClient, session) -> N
     apply_resp = await client.post("/api/v1/candidate/jobs/apply", json={"job_id": job_id}, headers=cand_headers)
     app_id = apply_resp.json()["id"]
 
-    await client.patch(f"/api/v1/recruiter/jobs/applications/{app_id}/status", json={"status": "hired"}, headers=hr_headers)
+    # Advance to HIRED through the legal lifecycle funnel.
+    for status in ("shortlisted", "interview_scheduled", "offered", "hired"):
+        status_resp = await client.patch(
+            f"/api/v1/recruiter/jobs/applications/{app_id}/status",
+            json={"status": status},
+            headers=hr_headers,
+        )
+        assert status_resp.status_code == 200, status_resp.text
 
     withdraw_resp = await client.post(f"/api/v1/candidate/jobs/applications/{app_id}/withdraw", headers=cand_headers)
-    assert withdraw_resp.status_code == 400
+    assert withdraw_resp.status_code == 409
 
 
 @pytest.mark.asyncio

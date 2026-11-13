@@ -51,60 +51,66 @@ export function RecruiterJobCreate() {
     setError("");
     try {
       const job = await recruiterJobApi.createJob(form);
+      addToast("Job created successfully", "success");
       navigate(`/recruiter/jobs/${job.id}`);
-    } catch {
-      setError("Failed to create job. Please try again.");
-      addToast("Failed to create job", "error");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { detail?: string } } };
+      const msg = apiErr?.response?.data?.detail || "Failed to create job. Please try again.";
+      const displayMsg = typeof msg === "string" ? msg : JSON.stringify(msg);
+      setError(displayMsg);
+      addToast(displayMsg, "error");
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create Job Posting</h1>
-        <p className="mt-1 text-sm text-gray-500">Fill in the details to create a new job posting</p>
+    <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Create Job Posting</h1>
+          <p className="page-subtitle">Fill in the details to create a new job posting</p>
+        </div>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-600">{error}</div>
+        <div className="error-banner" role="alert">{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Basic Information</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Basic Information</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Job Title *</label>
+            <div>
+              <label className="field-label">Job Title *</label>
               <input
                 required
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Company *</label>
+            <div>
+              <label className="field-label">Company *</label>
               <input
                 required
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Department</label>
+            <div>
+              <label className="field-label">Department</label>
               <input
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Employment Type *</label>
+            <div>
+              <label className="field-label">Employment Type *</label>
               <select
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.employment_type}
                 onChange={(e) => setForm({ ...form, employment_type: e.target.value })}
               >
@@ -115,28 +121,28 @@ export function RecruiterJobCreate() {
                 <option value="freelance">Freelance</option>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Location *</label>
+            <div>
+              <label className="field-label">Location *</label>
               <input
                 required
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Experience Required</label>
+            <div>
+              <label className="field-label">Experience Required</label>
               <input
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.experience_required || ""}
                 onChange={(e) => setForm({ ...form, experience_required: e.target.value })}
                 placeholder="e.g. 3-5 years"
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Education Required</label>
+            <div>
+              <label className="field-label">Education Required</label>
               <input
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.education_required || ""}
                 onChange={(e) => setForm({ ...form, education_required: e.target.value })}
                 placeholder="e.g. Bachelor's in CS"
@@ -145,31 +151,31 @@ export function RecruiterJobCreate() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Salary</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Salary</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Min Salary</label>
+            <div>
+              <label className="field-label">Min Salary</label>
               <input
                 type="number"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.salary_min ?? ""}
                 onChange={(e) => setForm({ ...form, salary_min: e.target.value ? Number(e.target.value) : null })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Max Salary</label>
+            <div>
+              <label className="field-label">Max Salary</label>
               <input
                 type="number"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.salary_max ?? ""}
                 onChange={(e) => setForm({ ...form, salary_max: e.target.value ? Number(e.target.value) : null })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Currency</label>
+            <div>
+              <label className="field-label">Currency</label>
               <select
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.salary_currency}
                 onChange={(e) => setForm({ ...form, salary_currency: e.target.value })}
               >
@@ -182,74 +188,74 @@ export function RecruiterJobCreate() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Skills</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Skills</h2>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">Required Skills</label>
+            <label className="field-label">Required Skills</label>
             <div className="mt-1 flex gap-2">
               <input
-                className="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field flex-1"
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addRequiredSkill())}
                 placeholder="Type a skill and press Enter"
               />
-              <button type="button" onClick={addRequiredSkill} className="rounded-lg bg-primary-600 px-3 py-2 text-sm text-white hover:bg-primary-700">
+              <button type="button" onClick={addRequiredSkill} className="btn-primary btn-md">
                 Add
               </button>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.required_skills.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1 rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-800">
+                <span key={s} className="badge badge-primary gap-1.5 px-3 py-1">
                   {s}
-                  <button type="button" onClick={() => setForm({ ...form, required_skills: form.required_skills.filter((x) => x !== s) })} className="text-primary-600 hover:text-primary-800">&times;</button>
+                  <button type="button" onClick={() => setForm({ ...form, required_skills: form.required_skills.filter((x) => x !== s) })} className="text-primary-600 hover:text-primary-800" aria-label={`Remove ${s}`}>&times;</button>
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Preferred Skills</label>
+            <label className="field-label">Preferred Skills</label>
             <div className="mt-1 flex gap-2">
               <input
-                className="block flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field flex-1"
                 value={prefSkillInput}
                 onChange={(e) => setPrefSkillInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addPreferredSkill())}
                 placeholder="Type a skill and press Enter"
               />
-              <button type="button" onClick={addPreferredSkill} className="rounded-lg bg-primary-600 px-3 py-2 text-sm text-white hover:bg-primary-700">
+              <button type="button" onClick={addPreferredSkill} className="btn-primary btn-md">
                 Add
               </button>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {form.preferred_skills.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800">
+                <span key={s} className="badge badge-neutral gap-1.5 px-3 py-1">
                   {s}
-                  <button type="button" onClick={() => setForm({ ...form, preferred_skills: form.preferred_skills.filter((x) => x !== s) })} className="text-gray-600 hover:text-gray-800">&times;</button>
+                  <button type="button" onClick={() => setForm({ ...form, preferred_skills: form.preferred_skills.filter((x) => x !== s) })} className="text-gray-600 hover:text-gray-800" aria-label={`Remove ${s}`}>&times;</button>
                 </span>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Description</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Description</h2>
           <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Job Description *</label>
+            <div>
+              <label className="field-label">Job Description *</label>
               <textarea
                 required
                 rows={6}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Benefits</label>
+            <div>
+              <label className="field-label">Benefits</label>
               <textarea
                 rows={4}
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.benefits || ""}
                 onChange={(e) => setForm({ ...form, benefits: e.target.value })}
               />
@@ -257,22 +263,22 @@ export function RecruiterJobCreate() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Additional Settings</h2>
+        <div className="card p-6">
+          <h2 className="section-title mb-4">Additional Settings</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Application Deadline</label>
+            <div>
+              <label className="field-label">Application Deadline</label>
               <input
                 type="date"
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.application_deadline || ""}
                 onChange={(e) => setForm({ ...form, application_deadline: e.target.value || null })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">Status</label>
+            <div>
+              <label className="field-label">Status</label>
               <select
-                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="field"
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
               >
@@ -287,14 +293,14 @@ export function RecruiterJobCreate() {
           <button
             type="button"
             onClick={() => navigate("/recruiter/jobs")}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="btn-secondary btn-md"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+            className="btn-primary btn-md"
           >
             {saving ? "Creating..." : "Create Job"}
           </button>

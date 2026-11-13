@@ -541,7 +541,7 @@ describe("Skill2Job Career Intelligence", () => {
     expect(screen.getByRole("link", { name: /Overview/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Skill Gaps/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Time to Ready/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /AI Career Agent/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /AI Career Agent/ })).not.toBeInTheDocument();
     expect(await screen.findByText(/Strong · 70%/i)).toBeInTheDocument();
   });
 

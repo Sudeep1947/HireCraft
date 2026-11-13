@@ -87,7 +87,7 @@ async def test_register_duplicate_email_case_insensitive(client: AsyncClient, au
         json={"full_name": "Dupe2", "email": "DUPE_CI@EXAMPLE.COM", "password": "SecureP@ss1"},
     )
     assert resp.status_code == 409
-    assert "already registered" in resp.json()["detail"]
+    assert "already registered" in resp.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
@@ -572,7 +572,7 @@ async def test_duplicate_email_error_message(client: AsyncClient, auth_service: 
         json={"full_name": "Err Test 2", "email": "err_dup@example.com", "password": "SecureP@ss1"},
     )
     assert resp.status_code == 409
-    assert "already registered" in resp.json()["detail"].lower()
+    assert "already registered" in resp.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio
@@ -582,7 +582,7 @@ async def test_login_invalid_credentials_error_message(client: AsyncClient):
         json={"email": "ghost3@example.com", "password": "SecureP@ss1"},
     )
     assert resp.status_code == 401
-    assert "Invalid email or password" in resp.json()["detail"]
+    assert "Invalid email or password" in resp.json()["error"]["message"]
 
 
 # ═══════════════════════════════════════════════════════════════════

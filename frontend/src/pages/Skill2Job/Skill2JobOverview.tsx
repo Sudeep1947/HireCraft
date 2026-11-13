@@ -12,7 +12,7 @@ import TimeToReadyMini from "./components/TimeToReadyMini";
 import LearningProgressCard from "./components/LearningProgressCard";
 import CareerInsightCard from "./components/CareerInsightCard";
 import NextActionCard from "./components/NextActionCard";
-import { CardSkeleton, ReadinessSkeleton, JobCardSkeleton } from "./components/Skeletons";
+import { CardSkeleton, ReadinessSkeleton, JobCardSkeleton, Skeleton } from "./components/Skeletons";
 import { extractErrorMessage } from "./components/helpers";
 
 const TAB_ROUTES: Record<string, string> = {
@@ -86,18 +86,21 @@ export default function Skill2JobOverview({
   if (loading && !overview) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-8">
-          <div className="h-8 w-64 bg-white/20 rounded animate-pulse mb-3" />
-          <div className="h-4 w-96 bg-white/10 rounded animate-pulse mb-2" />
-          <div className="h-3 w-80 bg-white/10 rounded animate-pulse" />
+        <div className="panel-dark relative overflow-hidden p-8">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-40 bg-white/20" />
+            <Skeleton className="h-8 w-64 bg-white/25" />
+            <Skeleton className="h-4 w-96 max-w-full bg-white/15" />
+            <Skeleton className="h-3 w-80 max-w-full bg-white/15" />
+          </div>
         </div>
         <ReadinessSkeleton />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <JobCardSkeleton key={i} />
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <CardSkeleton lines={4} />
           <CardSkeleton lines={4} />
         </div>
@@ -108,17 +111,16 @@ export default function Skill2JobOverview({
   // ─── Error State ─────────────────────────────────────────────────
   if (error && !overview) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-        <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-red-700 mb-2">
+      <div className="card border-red-200/80 p-10 text-center animate-scale-in">
+        <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-500">
+          <AlertCircle className="h-6 w-6" aria-hidden="true" />
+        </span>
+        <h3 className="section-title text-red-700">
           Unable to load Career Intelligence
         </h3>
-        <p className="text-sm text-red-600 mb-4">{error}</p>
-        <button
-          onClick={fetchOverview}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
-        >
-          <RefreshCw className="h-4 w-4" /> Retry
+        <p className="mt-2 text-sm text-red-600">{error}</p>
+        <button onClick={fetchOverview} className="btn-primary mt-5">
+          <RefreshCw className="h-4 w-4" aria-hidden="true" /> Retry
         </button>
       </div>
     );
@@ -127,20 +129,17 @@ export default function Skill2JobOverview({
   // ─── Empty State (No Profile) ────────────────────────────────────
   if (overview && !overview.profile.connected) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-fade-up">
         <CareerHero overview={overview} onAnalyze={handleAnalyze} analyzing={analyzing} />
-        <div className="rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
-          <div className="text-4xl mb-4">&#127891;</div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">
+        <div className="empty-state px-6 py-14">
+          <div className="mb-4 text-4xl">&#127891;</div>
+          <h3 className="text-lg font-semibold text-gray-900">
             Your career intelligence starts here.
           </h3>
-          <p className="text-gray-500 max-w-md mx-auto mb-4">
+          <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
             Complete your profile to discover relevant jobs and personalized skill gaps.
           </p>
-          <button
-            onClick={() => go("perception")}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
-          >
+          <button onClick={() => go("perception")} className="btn-primary mt-5">
             Complete Profile
           </button>
         </div>
@@ -151,16 +150,20 @@ export default function Skill2JobOverview({
   if (!overview) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-up">
       {/* Hero */}
       <CareerHero overview={overview} onAnalyze={handleAnalyze} analyzing={analyzing} />
 
       {/* Error banner (non-blocking) */}
       {error && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-          <span className="text-sm text-amber-700">{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto text-amber-600 hover:text-amber-700">
+        <div className="error-banner" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+            className="ml-auto -mr-1 rounded px-1 text-red-500 transition-colors hover:text-red-700 focus-visible:ring-0"
+          >
             &times;
           </button>
         </div>
@@ -173,19 +176,19 @@ export default function Skill2JobOverview({
       <LocalOpportunities overview={overview} onViewGap={handleViewGap} />
 
       {/* Skill Gaps + Opportunity Unlock */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SkillGapIntelligence overview={overview} />
         <OpportunityUnlockCard overview={overview} />
       </div>
 
       {/* Time to Ready + Learning Progress */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TimeToReadyMini overview={overview} />
         <LearningProgressCard overview={overview} />
       </div>
 
       {/* Career Insight + Next Action */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CareerInsightCard overview={overview} />
         <NextActionCard overview={overview} />
       </div>
@@ -195,9 +198,9 @@ export default function Skill2JobOverview({
         <button
           onClick={fetchOverview}
           disabled={loading}
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition"
+          className="btn-ghost btn-sm"
         >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
           Refresh Analysis
         </button>
       </div>

@@ -36,6 +36,24 @@ class OrganizationMembershipRepository(BaseRepository[OrganizationMembership]):
         result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_active_membership_by_email(
+        self, email: str, organization_id: uuid.UUID
+    ) -> OrganizationMembership | None:
+        """Check if a user with this email has an active membership in the org."""
+        from app.domain.models import User
+
+        stmt = (
+            select(OrganizationMembership)
+            .join(User, OrganizationMembership.user_id == User.id)
+            .where(
+                User.email == email.lower().strip(),
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.status == MembershipStatus.ACTIVE.value,
+            )
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_user_organizations(self, user_id: uuid.UUID) -> list[OrganizationMembership]:
         stmt = (
             select(OrganizationMembership)

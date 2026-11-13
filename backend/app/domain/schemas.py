@@ -195,3 +195,22 @@ class AuditLogResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class OAuthUrlResponse(BaseModel):
+    provider: str
+    url: str
+    state: str
+
+
+class OAuthCallbackRequest(BaseModel):
+    code: str = Field(..., min_length=1)
+    state: str | None = None
+    redirect_uri: str | None = None
+
+
+class DevOAuthLoginRequest(BaseModel):
+    email: EmailStr
+    provider: str = Field(default="google")
+    full_name: str | None = None
+

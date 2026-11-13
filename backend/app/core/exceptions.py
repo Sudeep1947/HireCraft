@@ -39,3 +39,28 @@ class ValidationError(AppError):
 class RateLimitError(AppError):
     status_code = 429
     code = "rate_limit_exceeded"
+
+
+class DatabaseError(AppError):
+    status_code = 503
+    code = "database_error"
+
+
+class ExternalDependencyError(AppError):
+    status_code = 503
+    code = "dependency_unavailable"
+
+
+class AIModelError(AppError):
+    status_code = 503
+    code = "ai_model_unavailable"
+
+
+class SimulationError(AppError):
+    status_code = 500
+    code = "simulation_error"
+
+
+class WorkerError(AppError):
+    status_code = 503
+    code = "worker_error"

@@ -18,10 +18,25 @@ function scoreColor(pct: number): string {
   return "text-red-500";
 }
 
-export function AssessmentResult() {
+export interface AssessmentResultProps {
+  /**
+   * Who is reading this. Defaults to the candidate, which keeps this page's
+   * original behaviour and copy exactly as it was.
+   *
+   * Phase 12 reuses this same component for a recruiter reaching an attempt's
+   * result from the application, rather than building a second result page. The
+   * only difference is tone: "congratulations" is addressed to a candidate, and
+   * a recruiter reading the same result needs to be told it is evidence rather
+   * than an outcome. The data, the scoring and the layout are identical.
+   */
+  audience?: "candidate" | "staff";
+}
+
+export function AssessmentResult({ audience = "candidate" }: AssessmentResultProps = {}) {
   const { attemptId } = useParams<{ attemptId: string }>();
   const [result, setResult] = useState<ResultResponse | null>(null);
   const [error, setError] = useState("");
+  const isStaff = audience === "staff";
 
   useEffect(() => {
     if (!attemptId) return;
@@ -68,11 +83,31 @@ export function AssessmentResult() {
         </div>
         <p className="mt-2 text-center text-sm font-semibold">
           {result.passed ? (
-            <span className="text-green-600">Passed — congratulations!</span>
+            <span className="text-green-600">
+              {isStaff
+                ? `Above this assessment's pass mark (${result.passing_score}%).`
+                : "Passed — congratulations!"}
+            </span>
           ) : (
-            <span className="text-red-500">Below the passing score.</span>
+            <span className="text-red-500">
+              {isStaff
+                ? `Below this assessment's pass mark (${result.passing_score}%).`
+                : "Below the passing score."}
+            </span>
           )}
         </p>
+
+        {/* A recruiter is reading evidence, not an outcome. The pass mark is the
+            assessment's own configured threshold and decides nothing about
+            hiring, so say so on the page rather than letting a green "passed"
+            badge stand in for a decision the recruiter has not made. */}
+        {isStaff ? (
+          <p className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+            This is the assessment result as evidence for your review. Passing this
+            assessment does not shortlist a candidate and failing it does not reject
+            one — the hiring decision stays yours.
+          </p>
+        ) : null}
 
         {result.ai_summary && (
           <p className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-800">{result.ai_summary}</p>
@@ -119,7 +154,9 @@ export function AssessmentResult() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Focus areas</h2>
           {result.weak_skills.length === 0 && result.recommended_topics.length === 0 ? (
-            <p className="text-sm text-gray-400">Nothing flagged — great balance.</p>
+            <p className="text-sm text-gray-400">
+              {isStaff ? "None flagged." : "Nothing flagged — great balance."}
+            </p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {[...new Set([...result.weak_skills, ...result.recommended_topics])].map((s) => (

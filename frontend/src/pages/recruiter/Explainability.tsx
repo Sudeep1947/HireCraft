@@ -27,12 +27,12 @@ import {
 function ImprovementPanel({ explanation }: { explanation: CandidateExplanation }) {
   const recs = explanation.improvement_suggestions;
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Improvement Suggestions</h3>
+    <div className="card p-6">
+      <h3 className="section-title mb-4">Improvement Suggestions</h3>
       <div className="space-y-4">
         {recs.skill_improvements.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Skills to Acquire</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">Skills to Acquire</p>
             <div className="space-y-1">
               {recs.skill_improvements.map((s, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
@@ -41,7 +41,7 @@ function ImprovementPanel({ explanation }: { explanation: CandidateExplanation }
                     color={s.priority === "high" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}
                   />
                   <span className="font-medium text-gray-900">{s.skill}</span>
-                  <span className="text-gray-500 text-xs">{s.reason}</span>
+                  <span className="text-xs text-gray-500">{s.reason}</span>
                 </div>
               ))}
             </div>
@@ -49,9 +49,9 @@ function ImprovementPanel({ explanation }: { explanation: CandidateExplanation }
         )}
         {recs.certification_recommendations.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Certifications</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">Certifications</p>
             {recs.certification_recommendations.map((c, i) => (
-              <div key={i} className="text-sm text-gray-700 ml-2">
+              <div key={i} className="ml-2 text-sm text-gray-700">
                 {c.suggestion}
               </div>
             ))}
@@ -59,25 +59,25 @@ function ImprovementPanel({ explanation }: { explanation: CandidateExplanation }
         )}
         {recs.resume_improvements.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Resume Improvements</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">Resume Improvements</p>
             {recs.resume_improvements.map((r, i) => (
-              <div key={i} className="text-sm text-gray-700 ml-2">{r}</div>
+              <div key={i} className="ml-2 text-sm text-gray-700">{r}</div>
             ))}
           </div>
         )}
         {recs.project_suggestions.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Project Ideas</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">Project Ideas</p>
             {recs.project_suggestions.map((p, i) => (
-              <div key={i} className="text-sm text-gray-700 ml-2">{p}</div>
+              <div key={i} className="ml-2 text-sm text-gray-700">{p}</div>
             ))}
           </div>
         )}
         {recs.interview_preparation.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Interview Preparation</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">Interview Preparation</p>
             {recs.interview_preparation.map((t, i) => (
-              <div key={i} className="text-sm text-gray-700 ml-2">{t}</div>
+              <div key={i} className="ml-2 text-sm text-gray-700">{t}</div>
             ))}
           </div>
         )}
@@ -96,58 +96,56 @@ function ComparisonView({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="section-title">
           Candidate Comparison — {comparison.job_title}
         </h2>
-        <button onClick={onClear} className="text-sm text-gray-500 hover:text-gray-700">
-          Clear comparison
-        </button>
+        <button onClick={onClear} className="btn-ghost btn-sm">Clear comparison</button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="table-wrap">
+        <table className="data-table">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-2 px-3 text-xs font-medium text-gray-500">Candidate</th>
-              <th className="text-center py-2 px-3 text-xs font-medium text-gray-500">Score</th>
-              <th className="text-center py-2 px-3 text-xs font-medium text-gray-500">Skills</th>
-              <th className="text-center py-2 px-3 text-xs font-medium text-gray-500">Experience</th>
-              <th className="text-center py-2 px-3 text-xs font-medium text-gray-500">Education</th>
-              <th className="text-center py-2 px-3 text-xs font-medium text-gray-500">Confidence</th>
-              <th className="text-center py-2 px-3 text-xs font-medium text-gray-500">Recommendation</th>
+            <tr>
+              <th>Candidate</th>
+              <th className="text-center">Score</th>
+              <th className="text-center">Skills</th>
+              <th className="text-center">Experience</th>
+              <th className="text-center">Education</th>
+              <th className="text-center">Confidence</th>
+              <th className="text-center">Recommendation</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {comparison.candidates.map((c) => (
-              <tr key={c.candidate_id} className="hover:bg-gray-50">
-                <td className="py-3 px-3">
+              <tr key={c.candidate_id}>
+                <td>
                   <p className="font-medium text-gray-900">{c.candidate_name}</p>
                   <p className="text-xs text-gray-500">{c.candidate_email}</p>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${scoreBgColor(c.overall_score)}`}>
+                <td className="text-center">
+                  <span className={`badge ${scoreBgColor(c.overall_score)}`}>
                     {c.overall_score}%
                   </span>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <span className={`text-xs font-bold ${c.skill_match_score >= 70 ? "text-green-600" : c.skill_match_score >= 40 ? "text-yellow-600" : "text-red-600"}`}>
+                <td className="text-center">
+                  <span className={`text-xs font-bold ${c.skill_match_score >= 70 ? "text-emerald-600" : c.skill_match_score >= 40 ? "text-amber-600" : "text-red-600"}`}>
                     {c.skill_match_score}%
                   </span>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <span className={`text-xs font-bold ${c.experience_match_score >= 70 ? "text-green-600" : c.experience_match_score >= 40 ? "text-yellow-600" : "text-red-600"}`}>
+                <td className="text-center">
+                  <span className={`text-xs font-bold ${c.experience_match_score >= 70 ? "text-emerald-600" : c.experience_match_score >= 40 ? "text-amber-600" : "text-red-600"}`}>
                     {c.experience_match_score}%
                   </span>
                 </td>
-                <td className="py-3 px-3 text-center">
-                  <span className={`text-xs font-bold ${c.education_match_score >= 70 ? "text-green-600" : c.education_match_score >= 40 ? "text-yellow-600" : "text-red-600"}`}>
+                <td className="text-center">
+                  <span className={`text-xs font-bold ${c.education_match_score >= 70 ? "text-emerald-600" : c.education_match_score >= 40 ? "text-amber-600" : "text-red-600"}`}>
                     {c.education_match_score}%
                   </span>
                 </td>
-                <td className="py-3 px-3 text-center">
+                <td className="text-center">
                   <ConfidenceIndicator confidence={c.confidence} />
                 </td>
-                <td className="py-3 px-3 text-center">
+                <td className="text-center">
                   <Badge label={c.recommendation.replace(/_/g, " ")} color={recommendationColor(c.recommendation)} />
                 </td>
               </tr>
@@ -157,18 +155,18 @@ function ComparisonView({
       </div>
 
       {comparison.pairwise_comparisons.map((pw, i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
+        <div key={i} className="card p-6">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900">
             {pw.higher_name} ({pw.higher_score}%) vs {pw.lower_name} ({pw.lower_score}%)
           </h3>
-          <p className="text-sm text-gray-700 mb-3">{pw.summary}</p>
+          <p className="mb-3 text-sm text-gray-700">{pw.summary}</p>
           {pw.key_differences.length > 0 && (
             <div className="space-y-1">
               {pw.key_differences.map((d, j) => (
                 <div key={j} className="text-sm text-gray-600">
                   <span className="font-medium">{d.category}:</span>{" "}
                   {d.higher_score} vs {d.lower_score}
-                  <span className={`ml-1 font-medium ${d.direction === "ahead" ? "text-green-600" : "text-red-600"}`}>
+                  <span className={`ml-1 font-medium ${d.direction === "ahead" ? "text-emerald-600" : "text-red-600"}`}>
                     ({d.direction} by {d.difference})
                   </span>
                 </div>
@@ -178,9 +176,9 @@ function ComparisonView({
           {pw.skills_only_higher_has.length > 0 && (
             <div className="mt-2">
               <span className="text-xs font-medium text-gray-500">Skills only {pw.higher_name} has:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
+              <div className="mt-1 flex flex-wrap gap-1">
                 {pw.skills_only_higher_has.map((s, k) => (
-                  <Badge key={k} label={s} color="bg-green-50 text-green-700" />
+                  <Badge key={k} label={s} color="bg-emerald-50 text-emerald-700" />
                 ))}
               </div>
             </div>
@@ -188,9 +186,9 @@ function ComparisonView({
           {pw.skills_only_lower_has.length > 0 && (
             <div className="mt-2">
               <span className="text-xs font-medium text-gray-500">Skills only {pw.lower_name} has:</span>
-              <div className="flex flex-wrap gap-1 mt-1">
+              <div className="mt-1 flex flex-wrap gap-1">
                 {pw.skills_only_lower_has.map((s, k) => (
-                  <Badge key={k} label={s} color="bg-blue-50 text-blue-700" />
+                  <Badge key={k} label={s} color="bg-sky-50 text-sky-700" />
                 ))}
               </div>
             </div>
@@ -263,13 +261,22 @@ export function ExplainabilityDashboard() {
     );
   };
 
-  if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
+  if (loading)
+    return (
+      <div className="space-y-6" aria-busy="true" aria-label="Loading explainability dashboard">
+        <div className="skeleton h-9 w-80" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="skeleton h-96 w-full lg:col-span-4" />
+          <div className="skeleton h-96 w-full lg:col-span-8" />
+        </div>
+      </div>
+    );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-up">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Explainability Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="page-title">Explainability Dashboard</h1>
+        <p className="page-subtitle">
           Understand why AI made its decisions — transparent scoring and feature importance
         </p>
       </div>
@@ -278,11 +285,7 @@ export function ExplainabilityDashboard() {
         <button
           onClick={handleCompare}
           disabled={compareIds.length < 2 || !jobId}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            compareIds.length >= 2 && jobId
-              ? "bg-primary-600 text-white hover:bg-primary-700"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-          }`}
+          className="btn-primary btn-md"
         >
           Compare Selected ({compareIds.length})
         </button>
@@ -291,15 +294,15 @@ export function ExplainabilityDashboard() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-4 space-y-2">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Candidates</h3>
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="space-y-2 lg:col-span-4">
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">Candidates</h3>
+          <div className="card-solid max-h-[600px] divide-y divide-gray-100 overflow-y-auto">
             {topCandidates?.candidates.map((c) => (
               <div
                 key={c.candidate_id}
-                className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
-                  selectedCandidate === c.candidate_id ? "bg-primary-50" : "hover:bg-gray-50"
+                className={`flex cursor-pointer items-center gap-3 p-3 transition-colors duration-200 ${
+                  selectedCandidate === c.candidate_id ? "bg-primary-50/80" : "hover:bg-primary-50/40"
                 }`}
               >
                 <input
@@ -312,10 +315,10 @@ export function ExplainabilityDashboard() {
                   className="shrink-0"
                 />
                 <div
-                  className="flex-1 min-w-0"
+                  className="min-w-0 flex-1"
                   onClick={() => handleSelectCandidate(c.candidate_id)}
                 >
-                  <p className="text-sm font-medium text-gray-900 truncate">{c.candidate_name}</p>
+                  <p className="truncate text-sm font-medium text-gray-900">{c.candidate_name}</p>
                   <p className="text-xs text-gray-500">
                     {c.overall_score}% &middot; {c.strength_level}
                   </p>
@@ -324,7 +327,7 @@ export function ExplainabilityDashboard() {
               </div>
             ))}
             {topCandidates?.candidates.length === 0 && (
-              <p className="text-sm text-gray-500 text-center py-8">No candidates to show</p>
+              <p className="py-8 text-center text-sm text-gray-500">No candidates to show</p>
             )}
           </div>
         </div>
@@ -338,26 +341,26 @@ export function ExplainabilityDashboard() {
             </div>
           ) : explanation ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatBox label="Overall Match" value={`${explanation.overall_score}%`} color={explanation.overall_score >= 70 ? "text-green-600" : "text-yellow-600"} />
-                <StatBox label="Strength Level" value={explanation.strength_level} color="text-blue-600" />
-                <StatBox label="Matched Skills" value={explanation.matched_skills.length} color="text-purple-600" />
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <StatBox label="Overall Match" value={`${explanation.overall_score}%`} color={explanation.overall_score >= 70 ? "text-emerald-600" : "text-amber-600"} />
+                <StatBox label="Strength Level" value={explanation.strength_level} color="text-sky-600" />
+                <StatBox label="Matched Skills" value={explanation.matched_skills.length} color="text-violet-600" />
                 <StatBox label="Missing Skills" value={explanation.missing_skills.length} color="text-orange-600" />
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">AI Reasoning</h3>
+              <div className="card p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="section-title">AI Reasoning</h3>
                   <ConfidenceIndicator confidence={explanation.confidence} />
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed">{explanation.reasoning_summary}</p>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-sm leading-relaxed text-gray-700">{explanation.reasoning_summary}</p>
+                <p className="mt-2 text-xs text-gray-400">
                   SHAP: {explanation.shap_available ? "Available" : "Fallback"} &middot; LIME: {explanation.lime_available ? "Available" : "Fallback"} &middot; Confidence data: {explanation.confidence.data_completeness_pct}% complete
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Feature Importance</h3>
+              <div className="card p-6">
+                <h3 className="section-title mb-4">Feature Importance</h3>
                 <div className="space-y-3">
                   {explanation.feature_importance.map((f) => (
                     <FeatureImportanceBar key={f.category} feature={f} />
@@ -365,31 +368,31 @@ export function ExplainabilityDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Positive Factors</h3>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="card p-6">
+                  <h3 className="section-title mb-3">Positive Factors</h3>
                   <FactorList factors={explanation.positive_factors} type="positive" />
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Negative Factors</h3>
+                <div className="card p-6">
+                  <h3 className="section-title mb-3">Negative Factors</h3>
                   <FactorList factors={explanation.negative_factors} type="negative" />
                 </div>
               </div>
 
               {explanation.strengths.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Strengths</h3>
+                <div className="card p-6">
+                  <h3 className="section-title mb-3">Strengths</h3>
                   <div className="flex flex-wrap gap-2">
                     {explanation.strengths.map((s, i) => (
-                      <Badge key={i} label={s} color="bg-green-50 text-green-700" />
+                      <Badge key={i} label={s} color="bg-emerald-50 text-emerald-700" />
                     ))}
                   </div>
                 </div>
               )}
 
               {explanation.weaknesses.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Weaknesses</h3>
+                <div className="card p-6">
+                  <h3 className="section-title mb-3">Weaknesses</h3>
                   <div className="flex flex-wrap gap-2">
                     {explanation.weaknesses.map((w, i) => (
                       <Badge key={i} label={w} color="bg-red-50 text-red-700" />
@@ -399,19 +402,19 @@ export function ExplainabilityDashboard() {
               )}
 
               {explanation.matched_skills.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Matched Skills</h3>
+                <div className="card p-6">
+                  <h3 className="section-title mb-3">Matched Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {explanation.matched_skills.map((s, i) => (
-                      <Badge key={i} label={s} color="bg-green-50 text-green-700" />
+                      <Badge key={i} label={s} color="bg-emerald-50 text-emerald-700" />
                     ))}
                   </div>
                 </div>
               )}
 
               {explanation.missing_skills.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Missing Skills</h3>
+                <div className="card p-6">
+                  <h3 className="section-title mb-3">Missing Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {explanation.missing_skills.map((s, i) => (
                       <Badge key={i} label={s} color="bg-red-50 text-red-700" />
@@ -423,8 +426,11 @@ export function ExplainabilityDashboard() {
               <ImprovementPanel explanation={explanation} />
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <p className="text-gray-500">Select a candidate to view their AI explanation</p>
+            <div className="empty-state">
+              <svg className="mb-3 h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+              </svg>
+              <p className="text-sm text-gray-500">Select a candidate to view their AI explanation</p>
             </div>
           )}
         </div>

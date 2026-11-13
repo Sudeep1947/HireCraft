@@ -1,4 +1,5 @@
-import apiClient from "./client";
+import apiClient, { getAccessToken, setAccessToken } from "./client";
+import { storage } from "../utils/storage";
 import type { ChatResponse, ConversationDetail, AgentInfo, WorkflowTemplate, AgentActivity, AgentStats, ProviderInfo } from "../types/agent";
 
 export async function sendChatMessage(
@@ -21,26 +22,130 @@ export async function sendChatMessageStream(
   onDone?: (data: { content: string; agent_type: string; citations: unknown[] }) => void,
   onError?: (error: string) => void,
 ): Promise<void> {
-  const token = localStorage.getItem("access_token") || "";
+  let token = getAccessToken() || storage.getAccessToken() || localStorage.getItem("access_token") || "";
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
-  const response = await fetch(`${API_BASE_URL}/api/v1/agent/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ message, conversation_id: conversationId || null, stream: true }),
-  });
+
+  // Proactive token refresh if token is missing but refresh token exists
+  if (!token) {
+    const refreshToken = storage.getRefreshToken();
+    if (refreshToken) {
+      try {
+        const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        if (refreshRes.ok) {
+          const tokenData = await refreshRes.json();
+          if (tokenData.access_token) {
+            token = tokenData.access_token;
+            setAccessToken(token);
+          }
+        }
+      } catch {
+        // proceed with best effort
+      }
+    }
+  }
+
+  const makeStreamRequest = async (authToken: string) => {
+    return fetch(`${API_BASE_URL}/api/v1/agent/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: JSON.stringify({ message, conversation_id: conversationId || null, stream: true }),
+    });
+  };
+
+  let response: Response;
+  try {
+    response = await makeStreamRequest(token);
+  } catch (netErr) {
+    // Network failure: try non-streaming fallback through apiClient
+    try {
+      const fallback = await sendChatMessage(message, conversationId);
+      if (fallback?.message) {
+        onMetadata?.({
+          conversation_id: fallback.conversation_id,
+          agent_type: fallback.agent_used,
+          citations: fallback.message.citations || [],
+        });
+        onDone?.({
+          content: fallback.message.content,
+          agent_type: fallback.agent_used,
+          citations: fallback.message.citations || [],
+        });
+        return;
+      }
+    } catch {
+      onError?.("Network connection issue. Please check your connection and try again.");
+      return;
+    }
+    return;
+  }
+
+  // Handle 401 or 422 authentication/validation retry
+  if ((response.status === 401 || response.status === 422) && storage.getRefreshToken()) {
+    try {
+      const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: storage.getRefreshToken() }),
+      });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        if (refreshData.access_token) {
+          token = refreshData.access_token;
+          setAccessToken(token);
+          response = await makeStreamRequest(token);
+        }
+      }
+    } catch {
+      // proceed to fallback
+    }
+  }
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => "Request failed");
-    onError?.(errText);
+    // Graceful fallback to non-streaming endpoint via apiClient
+    try {
+      const fallback = await sendChatMessage(message, conversationId);
+      if (fallback?.message) {
+        onMetadata?.({
+          conversation_id: fallback.conversation_id,
+          agent_type: fallback.agent_used,
+          citations: fallback.message.citations || [],
+        });
+        onDone?.({
+          content: fallback.message.content,
+          agent_type: fallback.agent_used,
+          citations: fallback.message.citations || [],
+        });
+        return;
+      }
+    } catch {
+      onError?.("I encountered an error processing your request. Please try again.");
+      return;
+    }
     return;
   }
 
   const reader = response.body?.getReader();
   if (!reader) {
-    onError?.("No response stream");
+    try {
+      const fallback = await sendChatMessage(message, conversationId);
+      if (fallback?.message) {
+        onDone?.({
+          content: fallback.message.content,
+          agent_type: fallback.agent_used,
+          citations: fallback.message.citations || [],
+        });
+        return;
+      }
+    } catch {
+      onError?.("No response stream available.");
+    }
     return;
   }
 
@@ -70,16 +175,26 @@ export async function sendChatMessageStream(
               onDone?.(event);
               break;
             case "error":
-              onError?.(event.content || "Unknown error");
+              onError?.(event.content || "An error occurred.");
               break;
           }
         } catch {
-          // skip malformed lines
+          // skip malformed line
         }
       }
     }
-  } catch (err) {
-    onError?.("Stream interrupted");
+    // Process any remaining buffer content
+    if (buffer.trim()) {
+      try {
+        const event = JSON.parse(buffer);
+        if (event.type === "done") onDone?.(event);
+        else if (event.type === "delta") onChunk?.(event.content || "");
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    onError?.("Stream interrupted. Please try again.");
   } finally {
     reader.releaseLock();
   }

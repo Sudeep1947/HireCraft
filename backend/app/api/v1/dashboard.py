@@ -127,39 +127,49 @@ async def recruiter_dashboard(
     interview_pipeline = {row[0]: row[1] for row in pipeline_result.all()}
 
     recent_apps_result = await db.execute(
-        select(JobApplication)
+        select(JobApplication, Job.title)
         .join(Job, Job.id == JobApplication.job_id)
         .where(Job.recruiter_id == current_user.id)
         .order_by(JobApplication.created_at.desc())
         .limit(10)
     )
-    recent_apps = recent_apps_result.scalars().all()
     recent_applications = [
         {
             "id": str(a.id),
             "job_id": str(a.job_id),
+            # Named so the dashboard can show "Application … · Senior Backend
+            # Engineer" rather than an unexplained truncated UUID. The query is
+            # already scoped to this recruiter's own jobs.
+            "job_title": job_title or "",
             "candidate_id": str(a.candidate_id),
             "status": a.status,
             "created_at": a.created_at.isoformat() if a.created_at else "",
         }
-        for a in recent_apps
+        for a, job_title in recent_apps_result.all()
     ]
 
     top_result = await db.execute(
-        select(CandidateRanking)
+        select(CandidateRanking, User.full_name)
         .join(Job, Job.id == CandidateRanking.job_id)
+        .join(User, User.id == CandidateRanking.candidate_id)
         .where(Job.recruiter_id == current_user.id)
         .order_by(CandidateRanking.overall_score.desc())
         .limit(5)
     )
+    # `candidate_name` is carried alongside `candidate_id` so the UI can label
+    # the identifier as belonging to a person instead of using a truncated UUID
+    # as a stand-in name. The join is inner on a user the ranking already
+    # references (FK, cascade delete), and the rows remain scoped to this
+    # recruiter's own jobs.
     top_candidates = [
         {
             "candidate_id": str(r.candidate_id),
+            "candidate_name": full_name or "",
             "overall_score": r.overall_score,
             "rank": r.rank,
             "strength_level": r.strength_level,
         }
-        for r in top_result.scalars().all()
+        for r, full_name in top_result.all()
     ]
 
     return RecruiterDashboardResponse(
@@ -179,7 +189,7 @@ async def recruiter_dashboard(
 @router.get("/hr", response_model=HRDashboardResponse)
 async def hr_dashboard(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("hr")),
+    current_user: User = Depends(require_role("hr", "hr_manager")),
 ):
     open_positions = await db.execute(
         select(func.count(Job.id)).where(Job.status == "published"),

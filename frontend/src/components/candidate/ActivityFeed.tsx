@@ -1,3 +1,5 @@
+import { Activity } from "lucide-react";
+
 import type { ActivityItem } from "../../types/candidate";
 
 interface ActivityFeedProps {
@@ -15,27 +17,34 @@ const typeIcons: Record<string, string> = {
 export function ActivityFeed({ activities }: ActivityFeedProps) {
   if (activities.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">
-          Recent Activity
-        </h3>
-        <p className="text-sm text-gray-400">No recent activity</p>
+      <div className="card p-5">
+        <h3 className="section-title">Recent Activity</h3>
+        <div className="mt-4 flex flex-col items-center rounded-xl border border-dashed border-gray-300/80 bg-white/40 px-4 py-10 text-center">
+          <Activity className="mb-2 h-8 w-8 text-gray-300" aria-hidden="true" />
+          <p className="text-sm text-gray-500">No recent activity</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-        Recent Activity
-      </h3>
-      <div className="space-y-3">
+    <div className="card p-5">
+      <h3 className="section-title">Recent Activity</h3>
+      <div className="mt-4 space-y-2">
         {activities.map((item, i) => (
-          <div key={i} className="flex items-start gap-3 text-sm">
-            <span className="text-lg">{typeIcons[item.type] || "📌"}</span>
-            <div>
-              <p className="text-gray-900 font-medium">{item.title}</p>
-              <p className="text-gray-500 text-xs">{item.message}</p>
+          <div
+            key={i}
+            className="flex items-start gap-3 rounded-xl p-2 transition-colors hover:bg-primary-50/40"
+          >
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-base"
+              aria-hidden="true"
+            >
+              {typeIcons[item.type] || "📌"}
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-sm font-medium text-gray-900">{item.title}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{item.message}</p>
             </div>
           </div>
         ))}

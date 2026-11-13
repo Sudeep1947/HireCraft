@@ -430,9 +430,9 @@ class Skill2JobService:
         return await PipelineOrchestrator(self._session).run(user_id)
 
     async def get_pipeline_trace(
-        self, user_id: uuid.UUID, run_id: str
+        self, user_id: uuid.UUID, run_id: str, is_admin: bool = False
     ) -> dict | None:
-        return await PipelineOrchestrator(self._session).get_trace(user_id, run_id)
+        return await PipelineOrchestrator(self._session).get_trace(user_id, run_id, is_admin=is_admin)
 
 
     # --- Phase 9: Time-to-Ready Engine ---
@@ -455,8 +455,8 @@ class Skill2JobService:
     ) -> list:
         return await self._time_to_ready_engine().compare_jobs(user_id, hours_per_week)
 
-    async def list_pipeline_traces(self, user_id: uuid.UUID, limit: int = 10) -> dict:
-        return await PipelineOrchestrator(self._session).list_traces(user_id, limit)
+    async def list_pipeline_traces(self, user_id: uuid.UUID, limit: int = 10, is_admin: bool = False) -> dict:
+        return await PipelineOrchestrator(self._session).list_traces(user_id, limit, is_admin=is_admin)
 
     # --- Phase 9: Learning Resource Intelligence ---
 

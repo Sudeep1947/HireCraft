@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -32,12 +33,62 @@ class UserBrief(BaseModel):
 # ── Organization schemas ─────────────────────────────────────────────────────
 
 
+URL_PATTERN = re.compile(
+    r"^https?://"
+    r"(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+    r"(?::\d+)?"
+    r"(?:[/?#]\S*)?$",
+    re.IGNORECASE,
+)
+SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+
+
 class OrganizationCreate(BaseModel):
+    model_config = {"extra": "forbid"}
+
     name: str = Field(..., min_length=1, max_length=255)
-    slug: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")
+    slug: str | None = Field(None, max_length=100)
     description: str | None = Field(None, max_length=2000)
     official_email: EmailStr | None = None
     domain: str | None = Field(None, max_length=255)
+    logo_url: str | None = Field(None, max_length=500)
+    industry: str | None = Field(None, max_length=255)
+    website: str | None = Field(None, max_length=500)
+    location: str | None = Field(None, max_length=255)
+    status: Literal["active", "inactive"] = "active"
+
+    @field_validator(
+        "name", "slug", "description", "official_email", "domain",
+        "logo_url", "industry", "website", "location",
+        mode="before",
+    )
+    @classmethod
+    def strip_text_fields(cls, value: object) -> object:
+        """Trim surrounding whitespace before any format validation runs."""
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, v: str | None) -> str | None:
+        if v is not None:
+            if not v:
+                raise ValueError("Slug must not be empty")
+            if not SLUG_PATTERN.match(v):
+                raise ValueError(
+                    "Slug must contain only lowercase letters, numbers, and single "
+                    "hyphens, with no leading or trailing hyphen"
+                )
+        return v
+
+    @field_validator("website")
+    @classmethod
+    def validate_website(cls, v: str | None) -> str | None:
+        if v is not None and v != "":
+            if not URL_PATTERN.match(v):
+                raise ValueError("Invalid website URL format. Must start with http:// or https://")
+        return v or None
 
 
 class OrganizationUpdate(BaseModel):
@@ -45,6 +96,10 @@ class OrganizationUpdate(BaseModel):
     description: str | None = Field(None, max_length=2000)
     official_email: EmailStr | None = None
     domain: str | None = Field(None, max_length=255)
+    logo_url: str | None = Field(None, max_length=500)
+    industry: str | None = Field(None, max_length=255)
+    website: str | None = Field(None, max_length=500)
+    location: str | None = Field(None, max_length=255)
     status: Literal["active", "inactive", "suspended"] | None = None
 
 
@@ -56,6 +111,9 @@ class OrganizationResponse(BaseModel):
     official_email: str | None = None
     domain: str | None = None
     logo_url: str | None = None
+    industry: str | None = None
+    website: str | None = None
+    location: str | None = None
     status: str
     created_at: datetime
     updated_at: datetime
@@ -123,6 +181,7 @@ class InvitationResponse(BaseModel):
     created_at: datetime
     accepted_at: datetime | None = None
     email_status: str | None = None
+    accept_url: str | None = None  # Set only on create/resend; never in list responses.
 
     model_config = {"from_attributes": True}
 

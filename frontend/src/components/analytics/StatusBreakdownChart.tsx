@@ -1,3 +1,5 @@
+import { PieChart } from "lucide-react";
+
 import type { StatusBreakdown } from "../../types/analytics";
 
 interface Props {
@@ -6,34 +8,55 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  applied: "bg-blue-100 text-blue-800",
-  under_review: "bg-yellow-100 text-yellow-800",
-  shortlisted: "bg-green-100 text-green-800",
-  interview_scheduled: "bg-purple-100 text-purple-800",
-  rejected: "bg-red-100 text-red-800",
-  offered: "bg-emerald-100 text-emerald-800",
-  hired: "bg-green-100 text-green-800",
-  withdrawn: "bg-gray-100 text-gray-800",
-  draft: "bg-gray-100 text-gray-600",
-  published: "bg-green-100 text-green-800",
-  closed: "bg-red-100 text-red-600",
-  archived: "bg-gray-100 text-gray-500",
+  applied: "bg-sky-50 text-sky-700 ring-sky-200/70",
+  under_review: "bg-amber-50 text-amber-700 ring-amber-200/70",
+  shortlisted: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  interview_scheduled: "bg-violet-50 text-violet-700 ring-violet-200/70",
+  interviewed: "bg-teal-50 text-teal-700 ring-teal-200/70",
+  rejected: "bg-red-50 text-red-700 ring-red-200/70",
+  offered: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  hired: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  withdrawn: "bg-gray-100 text-gray-700 ring-gray-200/80",
+  draft: "bg-gray-100 text-gray-600 ring-gray-200/80",
+  published: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
+  closed: "bg-red-50 text-red-700 ring-red-200/70",
+  archived: "bg-gray-100 text-gray-500 ring-gray-200/80",
 };
 
 export function StatusBreakdownChart({ data, title }: Props) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">{title}</h4>
-      <div className="space-y-2">
+    <div className="card relative overflow-hidden p-5">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-br from-primary-500/10 to-transparent"
+      />
+      <div className="relative mb-4 flex items-center justify-between gap-2">
+        <h4 className="section-title flex items-center gap-2 text-sm">
+          <span className="rounded-lg bg-primary-50 p-1.5 text-primary-600">
+            <PieChart className="h-4 w-4" aria-hidden="true" />
+          </span>
+          {title}
+        </h4>
+        <span className="section-label">{data.length} stages</span>
+      </div>
+
+      <div className="relative space-y-3">
         {data.map((s) => (
-          <div key={s.status} className="flex items-center gap-2">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[s.status] || "bg-gray-100 text-gray-700"}`}>
+          <div key={s.status} className="flex items-center gap-3">
+            <span
+              className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset transition-colors ${STATUS_COLORS[s.status] || "bg-gray-100 text-gray-700 ring-gray-200/80"}`}
+            >
               {s.status.replace(/_/g, " ")}
             </span>
-            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full bg-primary-500 rounded-full" style={{ width: `${s.percentage}%` }} />
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary-500 to-violet-500 transition-all duration-500 ease-smooth"
+                style={{ width: `${s.percentage}%` }}
+              />
             </div>
-            <span className="text-xs text-gray-500 w-12 text-right">{s.count}</span>
+            <span className="w-12 shrink-0 text-right text-xs font-semibold text-gray-600">
+              {s.count}
+            </span>
           </div>
         ))}
       </div>

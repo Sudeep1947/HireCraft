@@ -66,3 +66,26 @@ export function validateLoginForm(data: {
   }
   return errors;
 }
+
+export const ALLOWED_PROFILE_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
+export const MAX_PROFILE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+export function validateProfileImage(file: File): string | null {
+  const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+  const validMime = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+  ].includes(file.type);
+  const validExt = ALLOWED_PROFILE_IMAGE_EXTENSIONS.includes(ext);
+
+  if (!validMime && !validExt) {
+    return "Invalid file format. Please upload a JPG, JPEG, PNG, or WebP image.";
+  }
+  if (file.size > MAX_PROFILE_IMAGE_SIZE_BYTES) {
+    return "Image file size exceeds 5 MB limit. Please choose a smaller image.";
+  }
+  return null;
+}
+

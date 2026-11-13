@@ -364,3 +364,54 @@ class SimulationSummaryResponse(BaseModel):
     major_movements: list[SimulationResultItem] = Field(default_factory=list)
     completed_at: datetime | None = None
     error_message: str | None = None
+
+
+# ─── Optional manual shortlist (hypothetical → live, human-confirmed) ─────
+
+
+class SimulationShortlistApplyRequest(BaseModel):
+    """The recruiter's explicitly chosen candidates for the live shortlist.
+
+    Every id is re-validated server-side against the simulation's job,
+    execution, and application pool. The frontend selection is temporary UI
+    state; only an explicit Apply Shortlist request may touch live data.
+    """
+
+    candidate_ids: list[uuid.UUID] = Field(..., min_length=1, max_length=200)
+    execution_id: uuid.UUID | None = None
+
+
+class SimulationShortlistCandidateResult(BaseModel):
+    """Outcome for one candidate during an Apply Shortlist operation.
+
+    ``updated`` is True only when the existing application-status workflow
+    actually changed the live application (all other actions stay hypothetical).
+    """
+
+    candidate_id: uuid.UUID
+    candidate_name: str
+    application_id: uuid.UUID
+    previous_status: str
+    new_status: str
+    updated: bool
+
+
+class SimulationShortlistApplyResponse(BaseModel):
+    """Result of applying a shortlist chosen from a hypothetical simulation.
+
+    The simulation is never overwritten: ``scenario_status`` keeps reporting
+    the scenario's own lifecycle state (typically ``completed``), while
+    ``shortlist_status`` records whether the optional shortlist action was
+    applied. ``updated`` lists applications changed by the existing shortlist
+    workflow; ``skipped`` lists candidates already shortlisted (idempotent
+    retries land here).
+    """
+
+    simulation_id: uuid.UUID
+    execution_id: uuid.UUID
+    job_id: uuid.UUID
+    scenario_status: str
+    shortlist_status: str
+    applied: bool
+    updated: list[SimulationShortlistCandidateResult] = Field(default_factory=list)
+    skipped: list[SimulationShortlistCandidateResult] = Field(default_factory=list)

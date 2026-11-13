@@ -189,7 +189,7 @@ async def test_unauthenticated_cannot_create_org(client: AsyncClient):
         "/api/v1/organizations",
         json={"name": "No Auth Org", "slug": "no-auth-org"},
     )
-    assert resp.status_code in (401, 422)
+    assert resp.status_code == 401
 
 
 # ── Slug Handling Tests ────────────────────────────────────────────────

@@ -13,37 +13,44 @@ interface ActivityCardProps {
 }
 
 const typeColors = {
-  success: "bg-green-100 text-green-600",
-  info: "bg-blue-100 text-blue-600",
-  warning: "bg-amber-100 text-amber-600",
-  error: "bg-red-100 text-red-600",
+  success: "bg-emerald-500 ring-emerald-100",
+  info: "bg-blue-500 ring-blue-100",
+  warning: "bg-amber-500 ring-amber-100",
+  error: "bg-rose-500 ring-rose-100",
 };
 
 export function ActivityCard({ title = "Recent Activity", items, emptyMessage = "No activity yet" }: ActivityCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">{title}</h2>
+    <div className="card p-6 border border-slate-100 rounded-2xl bg-white shadow-xs">
+      <h2 className="text-base font-bold text-slate-900 mb-4">{title}</h2>
       {items.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {items.map((item, i) => (
-            <div key={item.id ?? i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+            <div
+              key={item.id ?? i}
+              className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3 transition-colors hover:border-blue-100 hover:bg-blue-50/30"
+            >
               {item.type && (
-                <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${typeColors[item.type]}`} />
+                <span
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ring-4 ${typeColors[item.type]}`}
+                />
               )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-700 truncate">{item.title}</p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">{item.title}</p>
                 {item.description && (
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">{item.description}</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">{item.description}</p>
                 )}
               </div>
               {item.time && (
-                <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">{item.time}</span>
+                <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">{item.time}</span>
               )}
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">{emptyMessage}</p>
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
+          <p className="text-sm text-slate-400">{emptyMessage}</p>
+        </div>
       )}
     </div>
   );

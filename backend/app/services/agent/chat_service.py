@@ -42,6 +42,15 @@ settings = get_settings()
 _initialized = False
 
 
+def _safe_uuid(val: str | None) -> uuid.UUID:
+    if not val:
+        return uuid.uuid4()
+    try:
+        return uuid.UUID(str(val))
+    except (ValueError, TypeError, AttributeError):
+        import hashlib
+        return uuid.UUID(hashlib.md5(str(val).encode("utf-8")).hexdigest())
+
 def _ensure_initialized() -> None:
     global _initialized
     if not _initialized:
@@ -93,12 +102,16 @@ class ChatService:
             ]
             conversation_memory.load_from_messages(cid, user_id, db_messages)
         else:
-            conv = await self._conv_repo.create(
-                user_id=uuid.UUID(user_id),
-                title=message[:100],
-                agent_type=orchestrator.route(message, user_roles),
-            )
-            await self._db.commit()
+            try:
+                conv = await self._conv_repo.create(
+                    user_id=_safe_uuid(user_id),
+                    title=message[:100],
+                    agent_type=orchestrator.route(message, user_roles),
+                )
+                await self._db.commit()
+            except Exception as e:
+                logger.warning(f"Could not persist conversation: {e}")
+                await self._db.rollback()
 
         agent_type = orchestrator.route(message, user_roles)
         conversation_memory.update_context(cid, agent_type=agent_type, user_id=user_id)
@@ -163,7 +176,7 @@ class ChatService:
         ]
 
         return {
-            "conversation_id": str(conv.id),
+            "conversation_id": str(conv.id if conv else cid),
             "message": {
                 "role": "assistant",
                 "content": content,
@@ -199,7 +212,7 @@ class ChatService:
     ) -> AsyncIterator[str]:
         valid, reason = self._safety.validate(message)
         if not valid:
-            yield json.dumps({"type": "error", "content": reason})
+            yield json.dumps({"type": "error", "content": reason}) + "\n"
             return
 
         cid = conversation_memory.get_or_create_conversation(user_id, conversation_id)
@@ -218,12 +231,16 @@ class ChatService:
             ]
             conversation_memory.load_from_messages(cid, user_id, db_messages)
         else:
-            conv = await self._conv_repo.create(
-                user_id=uuid.UUID(user_id),
-                title=message[:100],
-                agent_type=orchestrator.route(message, user_roles),
-            )
-            await self._db.commit()
+            try:
+                conv = await self._conv_repo.create(
+                    user_id=_safe_uuid(user_id),
+                    title=message[:100],
+                    agent_type=orchestrator.route(message, user_roles),
+                )
+                await self._db.commit()
+            except Exception as e:
+                logger.warning(f"Could not persist conversation: {e}")
+                await self._db.rollback()
 
         agent_type = orchestrator.route(message, user_roles)
         ctx = AgentContext(
@@ -247,17 +264,17 @@ class ChatService:
                 messages.append(LLMMessage(role=h["role"], content=h["content"]))
         messages.append(LLMMessage(role="user", content=message))
 
-        yield json.dumps({"type": "metadata", "conversation_id": str(conv.id), "agent_type": agent_type, "citations": citations})
-        yield json.dumps({"type": "start", "content": ""})
+        yield json.dumps({"type": "metadata", "conversation_id": str(conv.id if conv else cid), "agent_type": agent_type, "citations": citations}) + "\n"
+        yield json.dumps({"type": "start", "content": ""}) + "\n"
 
         full_content = ""
         try:
             async for chunk in llm_router.stream_chat(messages):
                 full_content += chunk
-                yield json.dumps({"type": "delta", "content": chunk})
+                yield json.dumps({"type": "delta", "content": chunk}) + "\n"
         except Exception as exc:
             logger.error("Streaming failed: %s", exc)
-            yield json.dumps({"type": "error", "content": "I encountered an error. Please try again."})
+            yield json.dumps({"type": "error", "content": "I encountered an error. Please try again."}) + "\n"
             return
 
         full_content = self._safety.filter_response(full_content)
@@ -269,13 +286,15 @@ class ChatService:
         except Exception as exc:
             logger.warning("Failed to persist streamed messages: %s", exc)
 
-        yield json.dumps({"type": "done", "content": full_content, "agent_type": agent_type, "citations": citations})
+        yield json.dumps({"type": "done", "content": full_content, "agent_type": agent_type, "citations": citations}) + "\n"
 
     async def _persist_messages(
         self, conv, user_message: str, assistant_content: str,
         agent_type: str, tool_calls_data: list[dict], citations: list[dict],
         tokens: int, user_id: str, elapsed_ms: int,
     ) -> None:
+        if conv is None:
+            return
         user_msg = AgentMessage(
             conversation_id=conv.id,
             role="user",
@@ -308,17 +327,21 @@ class ChatService:
             )
             self._db.add(tool_exec)
 
-        activity = AgentActivityLog(
-            user_id=uuid.UUID(user_id),
-            agent_type=agent_type,
-            action="chat",
-            details={"message_length": len(user_message), "response_length": len(assistant_content)},
-            tokens_used=tokens,
-            latency_ms=elapsed_ms,
-            success=True,
-        )
-        self._db.add(activity)
-        await self._db.commit()
+        try:
+            activity = AgentActivityLog(
+                user_id=_safe_uuid(user_id),
+                agent_type=agent_type,
+                action="chat",
+                details={"message_length": len(user_message), "response_length": len(assistant_content)},
+                tokens_used=tokens,
+                latency_ms=elapsed_ms,
+                success=True,
+            )
+            self._db.add(activity)
+            await self._db.commit()
+        except Exception as e:
+            logger.warning(f"Could not persist activity log: {e}")
+            await self._db.rollback()
 
     def _build_error_response(self, reason: str, conversation_id: str | None, start: float) -> dict:
         elapsed_ms = int((time.monotonic() - start) * 1000)

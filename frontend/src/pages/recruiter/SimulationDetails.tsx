@@ -12,6 +12,7 @@ import { ChangesSection } from "../../components/simulations/ChangesSection";
 import { ValidationPanel } from "../../components/simulations/ValidationPanel";
 import { useToast } from "../../contexts/ToastContext";
 import { simulationApi } from "../../api/simulations";
+import { simulationReportApi } from "../../api/simulationReports";
 import {
   canRunSimulation,
   computeClientChanges,
@@ -44,6 +45,7 @@ export function SimulationDetails() {
   const [changes, setChanges] = useState<SimulationChangesResponse | null>(null);
   const [executions, setExecutions] = useState<SimulationExecution[]>([]);
   const [summary, setSummary] = useState<SimulationSummaryResponse | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   const draftValidation = useMemo(() => validateSimulationConfig(draftConfig), [draftConfig]);
   const liveChanges = useMemo(
@@ -163,6 +165,36 @@ export function SimulationDetails() {
     }
   }
 
+  async function handleGenerateReport() {
+    if (!scenario) return;
+    setGeneratingReport(true);
+    try {
+      const report = await simulationReportApi.create({
+        report_type: "simulation",
+        simulation_id: scenario.id,
+        title: `${scenario.name} — Simulation Report`,
+        include: {
+          include_candidate_details: true,
+          include_fairness: true,
+          include_explainability: true,
+          include_skill_impact: true,
+          include_ranking: true,
+          include_requirements: true,
+          include_threshold: true,
+          include_shortlist: true,
+          include_limitations: true,
+          include_audit: true,
+        },
+      });
+      addToast("Report generated successfully", "success");
+      navigate(`/simulations/reports/${report.id}`);
+    } catch {
+      addToast("Failed to generate report", "error");
+    } finally {
+      setGeneratingReport(false);
+    }
+  }
+
   async function applyUpdate(patch: Parameters<typeof simulationApi.update>[1]) {
     if (!scenario) return;
     setSaving(true);
@@ -275,6 +307,15 @@ export function SimulationDetails() {
           {canRunSimulation(scenario.status) && !editing && (
             <Button onClick={handleRun} isLoading={running}>
               {activeExecution ? "Run Again" : "Run Simulation"}
+            </Button>
+          )}
+          {scenario.status === "completed" && (
+            <Button
+              variant="secondary"
+              onClick={handleGenerateReport}
+              isLoading={generatingReport}
+            >
+              Generate Report
             </Button>
           )}
           {editable && !editing && (
@@ -534,6 +575,42 @@ export function SimulationDetails() {
                   }
                 >
                   Requirement impact
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/recruiter/simulations/${scenario.id}/threshold-shortlist`)
+                  }
+                >
+                  Threshold &amp; Shortlist
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/recruiter/simulations/${scenario.id}/fairness-impact`)
+                  }
+                >
+                  Fairness Impact
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/recruiter/simulations/${scenario.id}/explainability-impact`)
+                  }
+                >
+                  Explainability Impact
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    navigate(`/recruiter/simulations/${scenario.id}/skill-impact`)
+                  }
+                >
+                  Skill Impact
                 </Button>
                     </div>
                   </div>

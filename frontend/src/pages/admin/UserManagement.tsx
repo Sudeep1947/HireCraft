@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Users, Search } from "lucide-react";
 
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { useToast } from "../../contexts/ToastContext";
 import { dashboardApi } from "../../api/dashboard";
 import type { AdminUserItem } from "../../api/dashboard";
+import { formatDate } from "../../utils/dateTime";
 
 export function UserManagement() {
   const { addToast } = useToast();
@@ -28,75 +30,97 @@ export function UserManagement() {
   if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="mt-1 text-sm text-gray-500">{users.length} total users</p>
+          <h1 className="page-title">User Management</h1>
+          <p className="page-subtitle">{users.length} total users</p>
         </div>
+        <span className="badge-primary self-start">
+          <Users className="h-3.5 w-3.5" aria-hidden="true" /> Directory
+        </span>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="p-4 border-b">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users..."
-            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+      <div className="card overflow-hidden">
+        <div className="border-b border-gray-100 p-4">
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              aria-hidden="true"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search users..."
+              className="field pl-10"
+            />
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-wrap border-0 shadow-none">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Roles</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Joined</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Joined</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
+                <tr key={user.id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-violet-500 text-xs font-bold text-white">
+                        {user.full_name.charAt(0).toUpperCase()}
+                      </span>
+                      <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-1">
+                  <td className="text-gray-500">{user.email}</td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
                       {user.roles.map((role) => (
                         <span
                           key={role}
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            role === "admin" ? "bg-red-100 text-red-700" :
-                            role === "hr" ? "bg-purple-100 text-purple-700" :
-                            role === "recruiter" ? "bg-blue-100 text-blue-700" :
-                            "bg-green-100 text-green-700"
-                          }`}
+                          className={
+                            role === "admin"
+                              ? "badge-danger"
+                              : role === "hr" || role === "hr_manager"
+                                ? "badge-primary"
+                                : role === "recruiter"
+                                  ? "badge-info"
+                                  : "badge-success"
+                          }
                         >
                           {role}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      user.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}>
+                  <td>
+                    <span className={user.is_active ? "badge-success" : "badge-danger"}>
                       {user.is_active ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.created_at).toLocaleDateString()}
+                  <td className="text-gray-500">
+                    {formatDate(user.created_at)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {filtered.length === 0 && (
+            <div className="empty-state border-0">
+              <Search className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+              <h3 className="text-base font-semibold text-gray-900">No users found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try a different name or email search.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

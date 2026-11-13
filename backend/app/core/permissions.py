@@ -265,6 +265,8 @@ ROLE_PERMISSIONS: dict[str, list[Permission]] = {
     "admin": [p for p in Permission],
 }
 
+ROLE_PERMISSIONS["hr"] = ROLE_PERMISSIONS["hr_manager"]
+
 
 def get_permissions_for_role(role_name: str) -> list[Permission]:
     return ROLE_PERMISSIONS.get(role_name, [])
@@ -311,9 +313,10 @@ def normalize_role_name(role: str) -> str:
 ROLE_EQUIVALENCE: dict[str, frozenset[str]] = {
     "admin": frozenset({"admin", "super_admin"}),
     "super_admin": frozenset({"admin", "super_admin"}),
-    "hr": frozenset({"hr", "hr_manager", "organization_admin"}),
-    "hr_manager": frozenset({"hr", "hr_manager", "organization_admin"}),
-    "recruiter": frozenset({"recruiter", "hr", "hr_manager", "organization_admin"}),
+    "hr": frozenset({"hr", "hr_manager", "organization_admin", "admin", "super_admin"}),
+    "hr_manager": frozenset({"hr", "hr_manager", "organization_admin", "admin", "super_admin"}),
+    "recruiter": frozenset({"recruiter", "hr", "hr_manager", "organization_admin", "admin", "super_admin"}),
+    "organization_admin": frozenset({"organization_admin", "admin", "super_admin"}),
     "candidate": frozenset({"candidate"}),
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { FileText, Mic, Sparkles, Upload } from "lucide-react";
 import { skill2jobApi } from "../../../api/skill2job";
 import type { PerceptionDetail, PerceptionRecord } from "../../../types/skill2job";
@@ -167,23 +167,25 @@ export function PerceptionSection() {
 
       {selectedId &&
         (detailLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-gray-200 bg-white p-12">
+          <div className="card flex items-center justify-center p-12">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
             <span className="ml-3 text-sm text-gray-500">Loading parsed details...</span>
           </div>
         ) : detail ? (
           <PerceptionDetailPanel detail={detail} onBack={() => { setSelectedId(null); setDetail(null); }} />
         ) : (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+          <div className="error-banner" role="alert">
             Failed to load perception details.
           </div>
         ))}
 
       {!selectedId && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-gray-200 bg-white p-6">
+          <section className="card p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <Upload className="h-5 w-5 text-primary-600" aria-hidden="true" />
+              <span className="rounded-xl bg-primary-50 p-2.5 text-primary-600">
+                <Upload className="h-5 w-5" aria-hidden="true" />
+              </span>
               Perceive a Resume or Document
             </h2>
             <p className="mt-1 text-sm text-gray-500">
@@ -203,9 +205,11 @@ export function PerceptionSection() {
             </label>
           </section>
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-6">
+          <section className="card p-6">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <Mic className="h-5 w-5 text-primary-600" aria-hidden="true" />
+              <span className="rounded-xl bg-primary-50 p-2.5 text-primary-600">
+                <Mic className="h-5 w-5" aria-hidden="true" />
+              </span>
               Perceive Free Text or Voice
             </h2>
             <p className="mt-1 text-sm text-gray-500">
@@ -215,14 +219,14 @@ export function PerceptionSection() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={5}
-              className="mt-4 w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-800 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
+              className="field mt-4"
               placeholder="e.g. I have 3+ years building data pipelines with Python and Apache Airflow..."
             />
             <button
               type="button"
               disabled={busy}
               onClick={submitText}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+              className="btn-primary mt-3"
             >
               <Sparkles className="h-4 w-4" aria-hidden="true" />
               Extract skills
@@ -232,15 +236,15 @@ export function PerceptionSection() {
       )}
 
       {processingSteps.length > 0 && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <div className="info-banner">
           <div className="flex items-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            <span className="text-sm font-medium text-blue-800">Processing document...</span>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+            <span className="text-sm font-medium">Processing document...</span>
           </div>
           <ul className="mt-2 space-y-1">
             {processingSteps.map((step, i) => (
-              <li key={i} className="flex items-center gap-2 text-xs text-blue-600">
-                <span className="text-green-500">&#10003;</span> {step}
+              <li key={i} className="flex items-center gap-2 text-xs">
+                <span className="text-emerald-600">&#10003;</span> {step}
               </li>
             ))}
           </ul>
@@ -248,67 +252,71 @@ export function PerceptionSection() {
       )}
 
       {message && (
-        <div className={`rounded-xl border p-4 text-sm ${
-          messageType === "success"
-            ? "border-green-200 bg-green-50 text-green-800"
-            : messageType === "partial"
-            ? "border-amber-200 bg-amber-50 text-amber-800"
-            : "border-red-200 bg-red-50 text-red-800"
-        }`}>
-          {messageType === "success" && <span className="mr-1">&#10003;</span>}
-          {messageType === "partial" && <span className="mr-1">&#9888;</span>}
-          {messageType === "error" && <span className="mr-1">&#10007;</span>}
-          {message}
-        </div>
+        messageType === "success" ? (
+          <div className="success-banner">
+            <span className="mr-1">&#10003;</span>
+            {message}
+          </div>
+        ) : messageType === "partial" ? (
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm font-medium text-amber-700 shadow-xs" role="status">
+            <span className="mr-1">&#9888;</span>
+            {message}
+          </div>
+        ) : (
+          <div className="error-banner" role="alert">
+            <span className="mr-1">&#10007;</span>
+            {message}
+          </div>
+        )
       )}
 
       {!selectedId && (
-        <section className="rounded-2xl border border-gray-200 bg-white p-6">
+        <section className="card p-6">
           <h2 className="text-lg font-bold text-gray-900">Perception History</h2>
           {failed ? (
-            <p className="mt-2 text-sm text-gray-400">No perceptions yet.</p>
+            <p className="mt-2 text-sm text-gray-500">No perceptions yet.</p>
           ) : history.length === 0 ? (
-            <p className="mt-2 text-sm text-gray-400">No perceptions yet. Upload a resume or paste text above.</p>
+            <p className="mt-2 text-sm text-gray-500">No perceptions yet. Upload a resume or paste text above.</p>
           ) : (
             <ul className="mt-4 divide-y divide-gray-100">
               {history.map((r) => (
                 <li
                   key={r.id}
                   onClick={() => loadDetail(r.id)}
-                  className="flex cursor-pointer items-start justify-between gap-4 rounded-xl p-3 transition-colors hover:bg-gray-50"
+                  className="-mx-2 flex cursor-pointer items-start justify-between gap-4 rounded-xl p-3 transition-colors hover:bg-gray-50"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-800">
                       {r.original_filename || "Free Text Input"}{" "}
                       <span className="text-xs font-normal text-gray-400">&middot; {r.input_type}</span>
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <span className={`badge ${
                         r.processing_status === "ok"
-                          ? "bg-green-50 text-green-700"
+                          ? "badge-success"
                           : r.processing_status === "partial"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-red-50 text-red-600"
+                          ? "badge-warning"
+                          : "badge-danger"
                       }`}>
                         {r.processing_status}
                       </span>
                       {r.field_confidence != null && (
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                        <span className="badge badge-neutral">
                           {Math.round(r.field_confidence * 100)}%
                         </span>
                       )}
                       {r.skills_count > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        <span className="badge badge-info">
                           {r.skills_count} skills
                         </span>
                       )}
                       {r.experience_count > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+                        <span className="badge badge-primary">
                           {r.experience_count} exp
                         </span>
                       )}
                       {r.education_count > 0 && (
-                        <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        <span className="badge badge-warning">
                           {r.education_count} edu
                         </span>
                       )}

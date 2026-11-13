@@ -1,3 +1,5 @@
+import { FlaskConical } from "lucide-react";
+
 interface EmptySimulationStateProps {
   title: string;
   description: string;
@@ -12,13 +14,14 @@ export function EmptySimulationState({
   onAction,
 }: EmptySimulationStateProps) {
   return (
-    <div className="rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
-      <p className="text-gray-500">{title}</p>
-      <p className="mt-1 text-sm text-gray-400">{description}</p>
+    <div className="empty-state">
+      <FlaskConical className="mb-3 h-10 w-10 text-ink-subtle" aria-hidden="true" />
+      <p className="text-base font-semibold text-ink">{title}</p>
+      <p className="mt-1 text-sm text-ink-muted">{description}</p>
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-4 text-sm font-medium text-primary-600 hover:text-primary-700"
+          className="btn-primary btn-sm mt-4"
         >
           {actionLabel}
         </button>

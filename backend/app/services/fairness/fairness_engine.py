@@ -82,6 +82,53 @@ PROTECTED_ATTRIBUTES = [
     "marital_status", "pregnancy",
 ]
 
+# The screening score at or above which a candidate counts as having a positive
+# screening outcome. This is the same 70 the engine has always used in
+# ``_statistical_parity_difference`` and friends; it is named here so the group
+# metrics below can reuse the existing threshold instead of introducing a new
+# one, and so it can be reported to the user as a configured value rather than
+# an invisible magic number.
+POSITIVE_OUTCOME_THRESHOLD = 70
+
+# Minimum candidates in a demographic group before its outcome rate is
+# reported. Matches ``FairnessImpactAnalyzer.DEFAULT_MINIMUM_GROUP_SIZE`` so the
+# simulation and screening surfaces apply the same reliability floor.
+DEFAULT_MINIMUM_GROUP_SIZE = 5
+
+# Self-reported gender values that count as a known demographic. A candidate who
+# has not supplied a value is never assigned one, and never inferred: an
+# unrecorded attribute is reported as missing coverage, not as a group.
+_KNOWN_GENDER_VALUES = {"male", "female", "other"}
+
+# Metrics that are computed over a single job's screened population.
+GROUP_METRIC_SCOPE = "job_screening_population"
+
+# Explains, in the API response itself, what the group metrics do and do not
+# establish. Shipped with the data so no consumer can present the number without
+# the caveat attached.
+GROUP_METRIC_METHODOLOGY = (
+    "Rates compare the share of each self-reported gender group whose screening "
+    "score reached the configured positive-outcome threshold. They describe a "
+    "disparity between groups in the measured population and indicate where "
+    "investigation may be warranted. They do not establish that any individual "
+    "was treated unfairly, do not measure the outcome of a hiring decision "
+    "(no decision has been made at this point), and do not show that the "
+    "screening engine caused a disparity. Gender is self-reported and is not an "
+    "input to any match score."
+)
+
+# Why location is not used as a grouping dimension even though the engine
+# already tracks it. Location is not a protected attribute, and grouping by it
+# would re-express protected attributes as geography. The engine reports
+# location differences as a review alert instead, where they stay advisory.
+LOCATION_GROUPING_NOTE = (
+    "Candidate location is deliberately not used as a fairness grouping "
+    "dimension. Location is not a protected attribute and can act as a proxy "
+    "for one, so grouping by it would risk reporting a protected disparity "
+    "under a geographic label. Score differences between locations are reported "
+    "separately as a review alert."
+)
+
 
 class FairnessEngine:
     """Analyze recruitment outcomes for bias, fairness, and compliance."""
@@ -92,14 +139,24 @@ class FairnessEngine:
         self.profile_repo = CandidateProfileRepository(session)
         self.job_repo = JobRepository(session)
 
-    async def get_fairness_overview(self) -> dict[str, Any]:
-        total_screened = await self._count_screenings()
-        total_rankings = await self._count_rankings()
-        total_jobs = await self._count_jobs()
-        total_candidates = await self._count_candidates()
-        fairness_score = await self._compute_overall_fairness_score()
-        bias_alerts = await self._get_recent_bias_alerts(limit=10)
-        diversity = await self._compute_diversity_indicators()
+    async def get_fairness_overview(
+        self, job_ids: list[uuid.UUID] | None = None,
+    ) -> dict[str, Any]:
+        """Platform-wide fairness overview, optionally scoped to ``job_ids``.
+
+        ``job_ids=None`` means unrestricted and is only ever passed for a
+        platform admin. Any other caller passes the ids they are authorized for,
+        so one organization cannot read another's candidate counts or alerts.
+        An empty list is valid and yields zeroed totals rather than falling back
+        to an unscoped query.
+        """
+        total_screened = await self._count_screenings(job_ids)
+        total_rankings = await self._count_rankings(job_ids)
+        total_jobs = await self._count_jobs(job_ids)
+        total_candidates = await self._count_candidates(job_ids)
+        fairness_score = await self._compute_overall_fairness_score(job_ids)
+        bias_alerts = await self._get_recent_bias_alerts(limit=10, job_ids=job_ids)
+        diversity = await self._compute_diversity_indicators(job_ids)
 
         return {
             "overall_fairness_score": fairness_score,
@@ -113,8 +170,10 @@ class FairnessEngine:
             "last_analyzed": datetime.utcnow().isoformat(),
         }
 
-    async def get_fairness_metrics(self) -> dict[str, Any]:
-        scores = await self._get_all_screening_scores()
+    async def get_fairness_metrics(
+        self, job_ids: list[uuid.UUID] | None = None,
+    ) -> dict[str, Any]:
+        scores = await self._get_all_screening_scores(job_ids)
         spd = self._statistical_parity_difference(scores)
         di = self._disparate_impact_ratio(scores)
         eod = self._equal_opportunity_difference(scores)
@@ -155,29 +214,47 @@ class FairnessEngine:
             "data_points": len(scores),
         }
 
-    async def get_job_fairness_report(self, job_id: uuid.UUID) -> dict[str, Any]:
+    async def get_job_fairness_report(
+        self,
+        job_id: uuid.UUID,
+        minimum_group_size: int = DEFAULT_MINIMUM_GROUP_SIZE,
+    ) -> dict[str, Any]:
         job = await self.session.get(Job, job_id)
         if not job:
             return {"error": "Job not found"}
 
         results = await self._get_screenings_for_job(job_id)
+        profiles = await self._load_profiles_for_screenings(results)
+        group_fairness = self._build_group_fairness(
+            results, profiles, minimum_group_size,
+        )
+
         if not results:
+            # Previously this branch returned a short dict that the
+            # ``FairnessReportResponse`` model could not validate, so asking for
+            # a fairness report on an unscreened job raised a 500 instead of
+            # reporting "no data". It now returns the same shape as the populated
+            # case, with the honest zero/empty values and an explicit status.
             return {
                 "job_id": str(job_id),
                 "job_title": job.title,
+                "total_candidates": 0,
                 "message": "No screening data available for this job",
                 "fairness_score": 0,
                 "metrics": {},
+                "score_distribution": {
+                    "average": 0, "min": 0, "max": 0, "median": 0, "std_dev": 0,
+                },
+                "gender_distribution": {"counts": {}, "percentages": {}},
+                "location_distribution": {},
                 "bias_alerts": [],
                 "recommendations": ["Screen candidates to enable fairness analysis"],
+                "group_fairness": group_fairness,
+                "metric_scope": GROUP_METRIC_SCOPE,
+                "metric_methodology": GROUP_METRIC_METHODOLOGY,
             }
 
         scores = [r.overall_match_score for r in results]
-        profiles = []
-        for r in results:
-            profile = await self.profile_repo.get_by_user_id(r.candidate_id)
-            if profile:
-                profiles.append(profile)
 
         spd = self._statistical_parity_difference(scores)
         di = self._disparate_impact_ratio(scores)
@@ -196,11 +273,21 @@ class FairnessEngine:
             "total_candidates": len(results),
             "fairness_score": round(composite, 2),
             "metrics": {
+                # Retained unchanged for backwards compatibility with the
+                # existing fairness dashboard. These are derived from the score
+                # distribution, not from protected groups -- see
+                # ``score_distribution_metrics_note`` and ``group_fairness`` for
+                # the actual group comparison.
                 "statistical_parity_difference": round(spd, 4),
                 "disparate_impact_ratio": round(di, 4),
                 "consistency_score": round(consistency, 4),
                 "composite_fairness_score": round(composite, 2),
             },
+            "score_distribution_metrics_note": (
+                "The values in 'metrics' are derived from this job's screening "
+                "score distribution, not from comparisons between candidate "
+                "groups. Use 'group_fairness' for protected-group comparison."
+            ),
             "score_distribution": {
                 "average": round(sum(scores) / len(scores), 2) if scores else 0,
                 "min": min(scores) if scores else 0,
@@ -212,12 +299,334 @@ class FairnessEngine:
             "location_distribution": location_dist,
             "bias_alerts": alerts,
             "recommendations": recommendations,
+            "group_fairness": group_fairness,
+            "metric_scope": GROUP_METRIC_SCOPE,
+            "metric_methodology": GROUP_METRIC_METHODOLOGY,
         }
 
-    async def analyze_fairness(self, job_id: uuid.UUID | None = None) -> dict[str, Any]:
+    # ─── Protected-group fairness ───────────────────────────────────
+    # The metrics below compare self-reported demographic groups. They are kept
+    # separate from the score-distribution statistics in ``metrics`` because
+    # those do not compare groups at all, and labelling a score bucket as a
+    # "privileged group" would misstate what was measured.
+
+    async def _load_profiles_for_screenings(
+        self, results: list[ScreeningResult],
+    ) -> list[CandidateProfile]:
+        """Load every candidate profile for a set of screenings in one query.
+
+        The previous implementation called ``get_by_user_id`` once per screening
+        result, so a job with N screened applicants cost N extra queries on
+        every fairness page load.
+        """
+        candidate_ids = {r.candidate_id for r in results}
+        if not candidate_ids:
+            return []
+        stmt = select(CandidateProfile).where(
+            CandidateProfile.user_id.in_(candidate_ids)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    def _build_group_fairness(
+        self,
+        results: list[ScreeningResult],
+        profiles: list[CandidateProfile],
+        minimum_group_size: int,
+    ) -> dict[str, Any]:
+        """Compare screening outcomes across self-reported gender groups.
+
+        Read-only. Nothing here writes to screening, ranking or application
+        state, and no attribute is ever inferred: a candidate who has not
+        supplied a gender is counted as missing coverage and is never placed in
+        a group.
+        """
+        population = len(results)
+        gender_by_candidate = {
+            p.user_id: p.gender for p in profiles if p.gender is not None
+        }
+        with_demographic = sum(
+            1 for r in results
+            if gender_by_candidate.get(r.candidate_id) in _KNOWN_GENDER_VALUES
+        )
+        missing = population - with_demographic
+
+        coverage = {
+            "group_dimension": "gender",
+            "attribute_source": "self_reported",
+            "attributes_inferred": False,
+            "population": population,
+            "candidates_with_demographic": with_demographic,
+            "candidates_missing_demographic": missing,
+            "demographic_coverage_pct": (
+                round(with_demographic / population * 100, 2) if population else 0.0
+            ),
+            "minimum_group_size": minimum_group_size,
+            "positive_outcome_threshold": POSITIVE_OUTCOME_THRESHOLD,
+        }
+
+        if population == 0:
+            return {
+                "metric_status": "no_screening_data",
+                "status_reason": (
+                    "This job has no screening results, so there is no "
+                    "population to compare."
+                ),
+                "reference_group": None,
+                "group_metrics": [],
+                "cross_group_metrics": [],
+                "coverage": coverage,
+                "methodology": GROUP_METRIC_METHODOLOGY,
+                "grouping_note": LOCATION_GROUPING_NOTE,
+            }
+
+        groups: dict[str, list[ScreeningResult]] = defaultdict(list)
+        for r in results:
+            gender = gender_by_candidate.get(r.candidate_id)
+            key = gender if gender in _KNOWN_GENDER_VALUES else "unknown"
+            groups[key].append(r)
+
+        group_metrics: list[dict[str, Any]] = []
+        for group_value, rows in sorted(groups.items()):
+            sample_size = len(rows)
+            if group_value == "unknown":
+                group_metrics.append({
+                    "group_value": group_value,
+                    "sample_size": sample_size,
+                    "positive_outcome_count": None,
+                    "positive_outcome_rate": None,
+                    "metric_status": "no_demographic_data",
+                    "status_reason": (
+                        "These candidates have not supplied a self-reported "
+                        "gender. No value is inferred or assumed for them."
+                    ),
+                })
+                continue
+            if sample_size < minimum_group_size:
+                group_metrics.append({
+                    "group_value": group_value,
+                    "sample_size": sample_size,
+                    "positive_outcome_count": None,
+                    "positive_outcome_rate": None,
+                    "metric_status": "insufficient_sample",
+                    "status_reason": (
+                        f"Group has {sample_size} screened candidate(s), below "
+                        f"the minimum threshold of {minimum_group_size}."
+                    ),
+                })
+                continue
+            positive = sum(
+                1 for r in rows
+                if r.overall_match_score >= POSITIVE_OUTCOME_THRESHOLD
+            )
+            group_metrics.append({
+                "group_value": group_value,
+                "sample_size": sample_size,
+                "positive_outcome_count": positive,
+                "positive_outcome_rate": round(positive / sample_size, 4),
+                "metric_status": "available",
+                "status_reason": None,
+            })
+
+        known_groups = {k: v for k, v in groups.items() if k != "unknown"}
+        reference_group = (
+            max(known_groups, key=lambda k: len(known_groups[k]))
+            if known_groups
+            else None
+        )
+        cross_group_metrics = self._build_cross_group_metrics(
+            known_groups, reference_group, minimum_group_size,
+        )
+
+        available = [g for g in group_metrics if g["metric_status"] == "available"]
+        if len(available) < 2:
+            status = (
+                "no_demographic_data" if not known_groups
+                else "insufficient_data"
+            )
+            reason = (
+                "No candidate in this job has supplied a self-reported gender, "
+                "so no group comparison is possible."
+                if not known_groups
+                else (
+                    "Fewer than 2 gender groups meet the minimum size threshold "
+                    f"of {minimum_group_size}, so no cross-group metric is "
+                    "reported."
+                )
+            )
+        else:
+            status = "available"
+            reason = None
+
+        return {
+            "metric_status": status,
+            "status_reason": reason,
+            "reference_group": reference_group,
+            "group_metrics": group_metrics,
+            "cross_group_metrics": cross_group_metrics,
+            "coverage": coverage,
+            "methodology": GROUP_METRIC_METHODOLOGY,
+            "grouping_note": LOCATION_GROUPING_NOTE,
+        }
+
+    def _build_cross_group_metrics(
+        self,
+        known_groups: dict[str, list[ScreeningResult]],
+        reference_group: str | None,
+        minimum_group_size: int,
+    ) -> list[dict[str, Any]]:
+        """SPD and DI across gender groups against the largest known group.
+
+        Mirrors the calculation already used by
+        ``FairnessImpactAnalyzer`` so the simulation surface and the screening
+        surface report the same metric the same way.
+        """
+        def metric(
+            name: str,
+            label: str,
+            value: float | None,
+            status: str,
+            reason: str | None,
+        ) -> dict[str, Any]:
+            return {
+                "metric_name": name,
+                "metric_label": label,
+                "value": value,
+                "reference_group": reference_group,
+                "groups_compared": sorted(known_groups.keys()),
+                "metric_status": status,
+                "status_reason": reason,
+            }
+
+        if reference_group is None or reference_group not in known_groups:
+            reason = "No valid reference group is available for comparison."
+            return [
+                metric(
+                    "statistical_parity_difference",
+                    "Statistical Parity Difference", None,
+                    "no_reference_group", reason,
+                ),
+                metric(
+                    "disparate_impact_ratio",
+                    "Disparate Impact Ratio", None,
+                    "no_reference_group", reason,
+                ),
+            ]
+
+        comparable = {
+            k: v for k, v in known_groups.items()
+            if len(v) >= minimum_group_size
+        }
+        if reference_group not in comparable:
+            reason = (
+                f"Reference group '{reference_group}' has "
+                f"{len(known_groups[reference_group])} candidate(s), below the "
+                f"minimum threshold of {minimum_group_size}."
+            )
+            return [
+                metric(
+                    "statistical_parity_difference",
+                    "Statistical Parity Difference", None,
+                    "insufficient_data", reason,
+                ),
+                metric(
+                    "disparate_impact_ratio",
+                    "Disparate Impact Ratio", None,
+                    "insufficient_data", reason,
+                ),
+            ]
+
+        if len(comparable) < 2:
+            reason = (
+                "Fewer than 2 groups meet the minimum size threshold of "
+                f"{minimum_group_size}."
+            )
+            return [
+                metric(
+                    "statistical_parity_difference",
+                    "Statistical Parity Difference", None,
+                    "insufficient_data", reason,
+                ),
+                metric(
+                    "disparate_impact_ratio",
+                    "Disparate Impact Ratio", None,
+                    "insufficient_data", reason,
+                ),
+            ]
+
+        def rate(rows: list[ScreeningResult]) -> float:
+            positive = sum(
+                1 for r in rows
+                if r.overall_match_score >= POSITIVE_OUTCOME_THRESHOLD
+            )
+            return positive / len(rows) if rows else 0.0
+
+        reference_rate = rate(comparable[reference_group])
+        rates = {k: rate(v) for k, v in comparable.items()}
+
+        spd = max(
+            abs(value - reference_rate)
+            for key, value in rates.items() if key != reference_group
+        )
+
+        min_rate = min(rates.values())
+        max_rate = max(rates.values())
+        if min_rate == max_rate:
+            di = 1.0
+            di_status = "identical_rates"
+            di_reason = "All comparable groups have the same screening outcome rate."
+        else:
+            di = min_rate / max_rate if max_rate > 0 else 1.0
+            di_status = "available"
+            di_reason = None
+
+        return [
+            metric(
+                "statistical_parity_difference",
+                "Statistical Parity Difference", round(spd, 4),
+                "available", None,
+            ),
+            metric(
+                "disparate_impact_ratio",
+                "Disparate Impact Ratio", round(di, 4),
+                di_status, di_reason,
+            ),
+        ]
+
+    async def get_job_group_fairness(
+        self,
+        job_id: uuid.UUID,
+        minimum_group_size: int = DEFAULT_MINIMUM_GROUP_SIZE,
+    ) -> dict[str, Any]:
+        """Protected-group fairness for one job's screened population.
+
+        Separately addressable so the Phase 7 screening workflow can show group
+        context without also pulling the whole score-distribution report.
+        """
+        job = await self.session.get(Job, job_id)
+        if not job:
+            return {"error": "Job not found"}
+        results = await self._get_screenings_for_job(job_id)
+        profiles = await self._load_profiles_for_screenings(results)
+        payload = self._build_group_fairness(
+            results, profiles, minimum_group_size,
+        )
+        payload["job_id"] = str(job_id)
+        payload["job_title"] = job.title
+        return payload
+
+    async def analyze_fairness(
+        self,
+        job_id: uuid.UUID | None = None,
+        job_ids: list[uuid.UUID] | None = None,
+    ) -> dict[str, Any]:
+        """Analyze one job, or the caller's authorized jobs when ``job_id`` is None.
+
+        ``job_ids`` is only consulted on the no-job branch; a specific job is
+        authorized by the route before this is reached.
+        """
         if job_id:
             return await self.get_job_fairness_report(job_id)
-        return await self.get_fairness_overview()
+        return await self.get_fairness_overview(job_ids=job_ids)
 
     async def detect_ranking_bias(self, job_id: uuid.UUID) -> dict[str, Any]:
         alerts = await self._detect_ranking_bias(job_id)
@@ -346,8 +755,10 @@ class FairnessEngine:
             "overall_assessment": "excellent" if bias_score >= 90 else "good" if bias_score >= 75 else "needs_improvement" if bias_score >= 50 else "poor",
         }
 
-    async def get_bias_alerts(self, limit: int = 50) -> list[dict[str, Any]]:
-        return await self._get_recent_bias_alerts(limit)
+    async def get_bias_alerts(
+        self, limit: int = 50, job_ids: list[uuid.UUID] | None = None,
+    ) -> list[dict[str, Any]]:
+        return await self._get_recent_bias_alerts(limit, job_ids=job_ids)
 
     async def get_fairness_report(self, job_id: uuid.UUID) -> dict[str, Any]:
         report = await self.get_job_fairness_report(job_id)
@@ -358,12 +769,32 @@ class FairnessEngine:
         report["hiring_recommendations"] = self._generate_hiring_fairness_recommendations(report)
         return report
 
-    async def get_candidate_fairness(self, candidate_id: uuid.UUID) -> dict[str, Any]:
+    async def get_candidate_fairness(
+        self,
+        candidate_id: uuid.UUID,
+        job_ids: list[uuid.UUID] | None = None,
+    ) -> dict[str, Any]:
+        """Fairness/transparency view for one candidate.
+
+        ``job_ids`` scopes a recruiter or HR call to the jobs the caller is
+        authorized for. A candidate with no screening inside that scope is
+        reported as not found rather than as an empty record: returning an empty
+        record would confirm the candidate exists and has been screened
+        elsewhere, which is itself a cross-tenant disclosure.
+
+        The candidate's own self-service call passes ``job_ids=None`` and is
+        already limited to their own id by the route.
+        """
         user = await self.session.get(User, candidate_id)
         if not user:
             return {"error": "Candidate not found"}
 
         results = await self.screening_repo.list_by_candidate(candidate_id)
+        if job_ids is not None:
+            allowed = set(job_ids)
+            results = [r for r in results if r.job_id in allowed]
+            if not results:
+                return {"error": "Candidate not found"}
         profile = await self.profile_repo.get_by_user_id(candidate_id)
 
         bias_checks_completed = len(results) > 0
@@ -396,26 +827,50 @@ class FairnessEngine:
             "last_evaluation_date": results[0].created_at.isoformat() if results else None,
         }
 
-    async def _count_screenings(self) -> int:
-        result = await self.session.execute(select(func.count(ScreeningResult.id)))
-        return result.scalar() or 0
+    @staticmethod
+    def _scoped(stmt, model_column, job_ids: list[uuid.UUID] | None):
+        """Constrain ``stmt`` to ``job_ids`` unless the caller is unscoped.
 
-    async def _count_rankings(self) -> int:
-        result = await self.session.execute(select(func.count(CandidateRanking.id)))
-        return result.scalar() or 0
+        An empty ``job_ids`` list yields a statement that matches nothing, which
+        is the correct answer for a user authorized for no jobs -- it must not
+        be treated as "no filter".
+        """
+        if job_ids is None:
+            return stmt
+        return stmt.where(model_column.in_(job_ids))
 
-    async def _count_jobs(self) -> int:
-        result = await self.session.execute(select(func.count(Job.id)))
-        return result.scalar() or 0
-
-    async def _count_candidates(self) -> int:
-        result = await self.session.execute(
-            select(func.count(func.distinct(ScreeningResult.candidate_id)))
+    async def _count_screenings(self, job_ids: list[uuid.UUID] | None = None) -> int:
+        stmt = self._scoped(
+            select(func.count(ScreeningResult.id)), ScreeningResult.job_id, job_ids,
         )
+        result = await self.session.execute(stmt)
         return result.scalar() or 0
 
-    async def _compute_overall_fairness_score(self) -> float:
-        scores = await self._get_all_screening_scores()
+    async def _count_rankings(self, job_ids: list[uuid.UUID] | None = None) -> int:
+        stmt = self._scoped(
+            select(func.count(CandidateRanking.id)), CandidateRanking.job_id, job_ids,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
+
+    async def _count_jobs(self, job_ids: list[uuid.UUID] | None = None) -> int:
+        stmt = self._scoped(select(func.count(Job.id)), Job.id, job_ids)
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
+
+    async def _count_candidates(self, job_ids: list[uuid.UUID] | None = None) -> int:
+        stmt = self._scoped(
+            select(func.count(func.distinct(ScreeningResult.candidate_id))),
+            ScreeningResult.job_id,
+            job_ids,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
+
+    async def _compute_overall_fairness_score(
+        self, job_ids: list[uuid.UUID] | None = None,
+    ) -> float:
+        scores = await self._get_all_screening_scores(job_ids)
         if not scores:
             return 50.0
         avg = sum(scores) / len(scores)
@@ -424,8 +879,15 @@ class FairnessEngine:
         balance = 100 if abs(avg - 65) < 20 else max(0, 100 - abs(avg - 65))
         return round((consistency * 0.5 + balance * 0.5), 2)
 
-    async def _get_all_screening_scores(self) -> list[int]:
-        result = await self.session.execute(select(ScreeningResult.overall_match_score))
+    async def _get_all_screening_scores(
+        self, job_ids: list[uuid.UUID] | None = None,
+    ) -> list[int]:
+        stmt = self._scoped(
+            select(ScreeningResult.overall_match_score),
+            ScreeningResult.job_id,
+            job_ids,
+        )
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
     async def _get_screenings_for_job(self, job_id: uuid.UUID) -> list[ScreeningResult]:
@@ -520,20 +982,18 @@ class FairnessEngine:
                 "recommendation": "Investigate whether the gap is justified by qualification differences.",
             })
 
-        profiles = {}
-        for r in rankings:
-            profile = await self.profile_repo.get_by_user_id(r.candidate_id)
-            if profile:
-                profiles[str(r.candidate_id)] = profile
+        profiles = await self._load_profiles_for_rankings(rankings)
+        score_by_candidate = {
+            str(r.candidate_id): r.overall_score for r in rankings
+        }
 
         location_groups: dict[str, list[int]] = defaultdict(list)
         for rid, profile in profiles.items():
             loc = profile.location or "unknown"
             city = loc.split(",")[0].strip().lower()
-            for r in rankings:
-                if str(r.candidate_id) == rid:
-                    location_groups[city].append(r.overall_score)
-                    break
+            score = score_by_candidate.get(rid)
+            if score is not None:
+                location_groups[city].append(score)
 
         if len(location_groups) >= 2:
             group_avgs = {k: sum(v) / len(v) for k, v in location_groups.items() if v}
@@ -556,12 +1016,38 @@ class FairnessEngine:
         )
         return list(result.scalars().all())
 
-    async def _get_recent_bias_alerts(self, limit: int = 10) -> list[dict[str, Any]]:
-        alerts = []
-        jobs_result = await self.session.execute(select(Job.id).limit(20))
-        job_ids = [j for j in jobs_result.scalars().all()]
+    async def _load_profiles_for_rankings(
+        self, rankings: list[CandidateRanking],
+    ) -> dict[str, CandidateProfile]:
+        """Load every ranked candidate's profile in one query.
 
-        for jid in job_ids:
+        Keyed by ``str(candidate_id)`` to match the caller's existing lookup
+        shape. Previously one query per ranking.
+        """
+        candidate_ids = {r.candidate_id for r in rankings}
+        if not candidate_ids:
+            return {}
+        stmt = select(CandidateProfile).where(
+            CandidateProfile.user_id.in_(candidate_ids)
+        )
+        rows = (await self.session.execute(stmt)).scalars().all()
+        return {str(p.user_id): p for p in rows}
+
+    async def _get_recent_bias_alerts(
+        self,
+        limit: int = 10,
+        job_ids: list[uuid.UUID] | None = None,
+    ) -> list[dict[str, Any]]:
+        alerts = []
+        if job_ids is not None and not job_ids:
+            return alerts
+        jobs_stmt = select(Job.id).limit(20)
+        if job_ids is not None:
+            jobs_stmt = jobs_stmt.where(Job.id.in_(job_ids))
+        jobs_result = await self.session.execute(jobs_stmt)
+        scoped_job_ids = [j for j in jobs_result.scalars().all()]
+
+        for jid in scoped_job_ids:
             job_alerts = await self._detect_ranking_bias(jid)
             for alert in job_alerts:
                 alert["job_id"] = str(jid)
@@ -571,11 +1057,32 @@ class FairnessEngine:
 
         return alerts[:limit]
 
-    async def _compute_diversity_indicators(self) -> dict[str, Any]:
-        profiles_result = await self.session.execute(
-            select(CandidateProfile).limit(500)
-        )
-        profiles = list(profiles_result.scalars().all())
+    async def _compute_diversity_indicators(
+        self, job_ids: list[uuid.UUID] | None = None,
+    ) -> dict[str, Any]:
+        """Aggregate, non-identifying profile distribution for the overview.
+
+        Scoped to the candidates behind ``job_ids`` so the diversity block on a
+        tenant's overview cannot describe the whole platform's candidate base.
+        """
+        profiles: list[CandidateProfile]
+        if job_ids is None:
+            profiles_result = await self.session.execute(
+                select(CandidateProfile).limit(500)
+            )
+            profiles = list(profiles_result.scalars().all())
+        elif not job_ids:
+            profiles = []
+        else:
+            candidate_ids = select(func.distinct(ScreeningResult.candidate_id)).where(
+                ScreeningResult.job_id.in_(job_ids)
+            )
+            profiles_result = await self.session.execute(
+                select(CandidateProfile)
+                .where(CandidateProfile.user_id.in_(candidate_ids))
+                .limit(500)
+            )
+            profiles = list(profiles_result.scalars().all())
 
         gender_counts = Counter()
         location_counts = Counter()

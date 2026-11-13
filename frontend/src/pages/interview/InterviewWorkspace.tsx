@@ -77,26 +77,52 @@ export function InterviewWorkspace() {
           <div className="p-8 text-center text-sm text-gray-500">No interviews yet</div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {interviews.map((iv) => (
-              <div
-                key={iv.id}
-                onClick={() => navigate(`/recruiter/interviews/${iv.id}`)}
-                className="flex cursor-pointer items-center justify-between px-5 py-3 transition hover:bg-gray-50"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{iv.candidate_name}</p>
-                  <p className="text-sm text-gray-500">{iv.job_title} · {iv.interview_type === "mock" ? "Mock" : "Scheduled"}</p>
+            {interviews.map((iv) => {
+              const joinable =
+                iv.interview_type === "recruiter_scheduled" &&
+                (iv.status === "scheduled" || iv.status === "in_progress");
+              return (
+                <div
+                  key={iv.id}
+                  onClick={() => navigate(`/recruiter/interviews/${iv.id}`)}
+                  className="flex cursor-pointer items-center justify-between px-5 py-3 transition hover:bg-gray-50"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">{iv.candidate_name}</p>
+                    <p className="text-sm text-gray-500">{iv.job_title} · {iv.interview_type === "mock" ? "Mock" : "Scheduled"}</p>
+                    <p className="text-xs text-gray-400">
+                      {iv.scheduled_at
+                        ? `${new Date(iv.scheduled_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}${
+                            iv.duration_minutes ? ` · ${iv.duration_minutes} minutes` : ""
+                          }`
+                        : "Not yet scheduled"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {joinable ? (
+                      <button
+                        onClick={(event) => {
+                          // The row opens the detail page; this goes straight
+                          // to the live room. The server re-checks the join
+                          // window on the room page either way.
+                          event.stopPropagation();
+                          navigate(`/interviews/${iv.id}/room`);
+                        }}
+                        className="rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                      >
+                        Join Interview
+                      </button>
+                    ) : null}
+                    {iv.overall_score !== null && (
+                      <span className="font-bold text-primary-600">{iv.overall_score}</span>
+                    )}
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[iv.status] || "bg-gray-100 text-gray-500"}`}>
+                      {iv.status.replace("_", " ")}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {iv.overall_score !== null && (
-                    <span className="font-bold text-primary-600">{iv.overall_score}</span>
-                  )}
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[iv.status] || "bg-gray-100 text-gray-500"}`}>
-                    {iv.status.replace("_", " ")}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

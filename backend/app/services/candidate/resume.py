@@ -23,7 +23,58 @@ AUDIT_LOGGER = logging.getLogger("audit")
 
 UPLOAD_DIR = Path(os.getenv("RESUME_UPLOAD_DIR", "uploads/resumes"))
 MAX_FILE_SIZE = 10 * 1024 * 1024
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".html", ".htm", ".rtf"}
+# Security: .html/.htm removed (stored XSS risk via static file serving).
+# .rtf removed (known parser vulnerability vector).
+ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
+
+# Magic byte signatures for allowed file types
+_MAGIC_BYTES = {
+    b"%PDF": ".pdf",
+    b"PK": ".docx",  # ZIP-based (docx is a zip)
+    b"\xd0\xcf\x11\xe0": ".doc",  # OLE2 compound
+}
+_MIME_MAP = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc": "application/msword",
+    ".txt": "text/plain",
+}
+
+
+def _validate_file_content(content: bytes, expected_ext: str) -> str:
+    """Validate file content matches expected extension via magic bytes.
+
+    Returns the validated MIME type or raises ValueError.
+    """
+    if not content:
+        raise ValueError("File is empty")
+
+    detected_ext = None
+    for signature, ext in _MAGIC_BYTES.items():
+        if content[:len(signature)] == signature:
+            detected_ext = ext
+            break
+
+    # Plain text files have no magic bytes — validate they are actually text
+    if expected_ext == ".txt":
+        try:
+            content.decode("utf-8")
+        except UnicodeDecodeError:
+            raise ValueError("Text file contains invalid characters")
+        return "text/plain"
+
+    if detected_ext is None:
+        raise ValueError(
+            f"File content does not match any supported format. "
+            f"Ensure the file is not corrupted or disguised."
+        )
+
+    if detected_ext != expected_ext:
+        raise ValueError(
+            f"File extension '{expected_ext}' does not match content type '{detected_ext}'"
+        )
+
+    return _MIME_MAP.get(detected_ext, "application/octet-stream")
 
 
 class ResumeService:
@@ -63,7 +114,8 @@ class ResumeService:
         with open(storage_path, "wb") as f:
             f.write(file_content)
 
-        mime_type = self._guess_mime_type(ext)
+        # Validate file content matches extension (prevents disguised files)
+        mime_type = _validate_file_content(file_content, ext)
         resume = Resume(
             user_id=user_id,
             profile_id=profile_id,
@@ -308,16 +360,3 @@ class ResumeService:
             raise ValueError("Only failed resumes can be retried")
         await self.process_resume(resume.id)
         return resume
-
-    @staticmethod
-    def _guess_mime_type(ext: str) -> str:
-        mapping = {
-            ".pdf": "application/pdf",
-            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            ".doc": "application/msword",
-            ".txt": "text/plain",
-            ".html": "text/html",
-            ".htm": "text/html",
-            ".rtf": "application/rtf",
-        }
-        return mapping.get(ext, "application/octet-stream")

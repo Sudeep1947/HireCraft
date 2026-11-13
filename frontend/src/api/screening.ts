@@ -19,6 +19,10 @@ import type {
   JobFitResponse,
   CandidateEvidenceIntelResponse,
   JobIntelligenceResponse,
+  ApplicationScreeningDetailResponse,
+  RecruiterApplicationExplanation,
+  CandidateApplicationExplanation,
+  ApplicationFairnessContext,
 } from "../types/screening";
 
 export async function screenJobApplicants(
@@ -47,6 +51,78 @@ export async function getScreeningResult(
 ): Promise<ScreeningResult> {
   const response = await apiClient.get<ScreeningResult>(
     `/screening/jobs/${jobId}/candidates/${candidateId}`,
+  );
+  return response.data;
+}
+
+export async function screenApplication(
+  applicationId: string,
+  config?: ScreeningConfig,
+): Promise<ScreeningResult> {
+  const response = await apiClient.post<ScreeningResult>(
+    `/recruiter/jobs/applications/${applicationId}/screen`,
+    config || {},
+  );
+  return response.data;
+}
+
+export async function getApplicationScreening(
+  applicationId: string,
+): Promise<ScreeningResult> {
+  const response = await apiClient.get<ScreeningResult>(
+    `/recruiter/jobs/applications/${applicationId}/screening`,
+  );
+  return response.data;
+}
+
+// ─── Application Screening Detail (Phase 5) ─────────────────────────
+
+export async function getApplicationScreeningDetail(
+  applicationId: string,
+): Promise<ApplicationScreeningDetailResponse> {
+  const response = await apiClient.get<ApplicationScreeningDetailResponse>(
+    `/recruiter/jobs/applications/${applicationId}/screening-detail`,
+  );
+  return response.data;
+}
+
+// ─── Application Explanation (Phase 6) ─────────────────────────────
+// Both surfaces read the same server-side explanation. The score is never
+// recomputed here; these functions only fetch it.
+
+export async function getApplicationExplanation(
+  applicationId: string,
+): Promise<RecruiterApplicationExplanation> {
+  const response = await apiClient.get<RecruiterApplicationExplanation>(
+    `/recruiter/jobs/applications/${applicationId}/explanation`,
+  );
+  return response.data;
+}
+
+export async function getMyApplicationExplanation(
+  applicationId: string,
+): Promise<CandidateApplicationExplanation> {
+  const response = await apiClient.get<CandidateApplicationExplanation>(
+    `/candidate/jobs/applications/${applicationId}/explanation`,
+  );
+  return response.data;
+}
+
+/**
+ * Fairness context for one application (Phase 7, recruiter only).
+ *
+ * The response describes the job's screened population; the application is
+ * included only as a member of it. Read-only: this never mutates a score,
+ * status or rank, and it never triggers an adversarial run.
+ */
+export async function getApplicationFairnessContext(
+  applicationId: string,
+  minimumGroupSize?: number,
+): Promise<ApplicationFairnessContext> {
+  const params =
+    minimumGroupSize !== undefined ? `?minimum_group_size=${minimumGroupSize}` : "";
+  const response = await apiClient.get<ApplicationFairnessContext>(
+    `/recruiter/jobs/applications/${applicationId}/fairness-context${params}`,
   );
   return response.data;
 }

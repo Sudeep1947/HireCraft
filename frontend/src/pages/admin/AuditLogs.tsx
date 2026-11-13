@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { ScrollText } from "lucide-react";
 
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { useToast } from "../../contexts/ToastContext";
 import { dashboardApi } from "../../api/dashboard";
 import type { AuditLogItem } from "../../api/dashboard";
+import { formatDateTime } from "../../utils/dateTime";
 
 export function AuditLogs() {
   const { addToast } = useToast();
@@ -21,53 +23,61 @@ export function AuditLogs() {
   if (loading) return <LoadingSpinner size="lg" className="mt-20" />;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-        <p className="mt-1 text-sm text-gray-500">{logs.length} recent entries</p>
+    <div className="space-y-6 animate-fade-up">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Audit Logs</h1>
+          <p className="page-subtitle">{logs.length} recent entries</p>
+        </div>
+        <span className="badge-primary self-start">
+          <ScrollText className="h-3.5 w-3.5" aria-hidden="true" /> Security trail
+        </span>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      {logs.length === 0 ? (
+        <div className="empty-state">
+          <ScrollText className="mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
+          <h3 className="text-base font-semibold text-gray-900">No audit logs recorded yet.</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Administrative actions will be recorded here as they happen.
+          </p>
+        </div>
+      ) : (
+        <div className="table-wrap animate-fade-in">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Action</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">User</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Resource</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">IP</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Time</th>
+                <th>Action</th>
+                <th>User</th>
+                <th>Resource</th>
+                <th>Status</th>
+                <th>IP</th>
+                <th>Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {logs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{log.action}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{log.user_id || "N/A"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                <tr key={log.id}>
+                  <td className="font-medium text-gray-900">{log.action}</td>
+                  <td className="text-gray-500">{log.user_id || "N/A"}</td>
+                  <td className="text-gray-500">
                     {log.resource_type ? `${log.resource_type}` : "N/A"}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      log.success ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}>
+                  <td>
+                    <span className={log.success ? "badge-success" : "badge-danger"}>
                       {log.success ? "Success" : "Failed"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{log.ip_address || "N/A"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(log.created_at).toLocaleString()}
+                  <td className="font-mono text-xs text-gray-500">{log.ip_address || "N/A"}</td>
+                  <td className="text-gray-500">
+                    {formatDateTime(log.created_at)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {logs.length === 0 && (
-          <div className="p-8 text-center text-sm text-gray-500">No audit logs recorded yet.</div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,18 @@
 import logging
 import uuid
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import NotFoundError
 from app.domain.enums import ApplicationStatus, NotificationType
 from app.domain.job_schemas import JobApplicationCreate, JobSearchParams
 from app.domain.models import Job, JobApplication, Notification, SavedJob, User
 from app.repositories.candidate.resume import ResumeRepository
 from app.repositories.jobs.job import JobApplicationRepository, JobRepository, SavedJobRepository
 from app.repositories.user import UserRepository
+from app.services.applications.application_lifecycle_service import ApplicationLifecycleService
+from app.services.applications.screening_scheduler import dispatch_automatic_screening
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,7 @@ class CandidateJobService:
         self.saved_job_repo = SavedJobRepository(session)
         self.resume_repo = ResumeRepository(session)
         self.user_repo = UserRepository(session)
+        self.lifecycle_service = ApplicationLifecycleService(session)
 
     async def search_jobs(self, params: JobSearchParams) -> dict:
         items, total = await self.job_repo.search(
@@ -87,6 +92,8 @@ class CandidateJobService:
         await self.session.flush()
 
         candidate = await self.user_repo.get(candidate_id)
+        await self.lifecycle_service.record_creation(app, actor=candidate)
+
         candidate_name = candidate.full_name if candidate else "A candidate"
         notification = Notification(
             user_id=job.recruiter_id,
@@ -97,13 +104,31 @@ class CandidateJobService:
         self.session.add(notification)
         await self.session.flush()
 
+        await dispatch_automatic_screening(self.session, app.id)
+
         return app
 
     async def get_my_applications(self, candidate_id: uuid.UUID) -> list[dict]:
+        """List the caller's own applications, each with its job summary.
+
+        Jobs are fetched in a single query rather than one per application, so a
+        candidate with many applications does not trigger a query per row. A job
+        that is no longer present still yields a row with empty job fields
+        instead of dropping the application from the candidate's list.
+        """
         apps = await self.application_repo.list_by_candidate(candidate_id)
+        if not apps:
+            return []
+        job_ids = {app.job_id for app in apps}
+        jobs = {
+            job.id: job
+            for job in (
+                await self.session.execute(select(Job).where(Job.id.in_(job_ids)))
+            ).scalars().all()
+        }
         result = []
         for app in apps:
-            job = await self.job_repo.get(app.job_id)
+            job = jobs.get(app.job_id)
             result.append({
                 "id": app.id,
                 "job_id": app.job_id,
@@ -111,6 +136,9 @@ class CandidateJobService:
                 "resume_id": app.resume_id,
                 "cover_letter": app.cover_letter,
                 "status": app.status,
+                "screening_status": app.screening_status,
+                "screening_error": app.screening_error,
+                "screening_completed_at": app.screening_completed_at,
                 "created_at": app.created_at,
                 "updated_at": app.updated_at,
                 "job_title": job.title if job else "",
@@ -120,14 +148,13 @@ class CandidateJobService:
             })
         return result
 
-    async def withdraw_application(self, application_id: uuid.UUID, candidate_id: uuid.UUID) -> bool:
+    async def withdraw_application(self, application_id: uuid.UUID, candidate: User) -> JobApplication:
         app = await self.application_repo.get(application_id)
-        if not app or app.candidate_id != candidate_id:
-            return False
-        if app.status in ("hired", "rejected"):
-            raise ValueError("Cannot withdraw a finalized application")
-        await self.application_repo.update_status(application_id, ApplicationStatus.WITHDRAWN.value)
-        return True
+        if not app or app.candidate_id != candidate.id:
+            raise NotFoundError("Application not found")
+        return await self.lifecycle_service.transition_application(
+            application_id, ApplicationStatus.WITHDRAWN.value, candidate,
+        )
 
     async def save_job(self, candidate_id: uuid.UUID, job_id: uuid.UUID) -> SavedJob:
         existing = await self.saved_job_repo.is_saved(candidate_id, job_id)

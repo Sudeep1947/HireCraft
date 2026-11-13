@@ -93,40 +93,82 @@ class XAIEngine:
             return {"error": "Candidate not found"}
 
         if screening:
-            job = await self.session.get(Job, screening.job_id)
-            feature_importance = self._calculate_feature_importance(screening)
-            positive_factors, negative_factors = self._identify_factors(screening, feature_importance)
-            reasoning_summary = self._build_reasoning_summary(screening, positive_factors, negative_factors)
-            confidence = self._calculate_confidence(screening, profile)
-            improvement_suggestions = await self._generate_improvement_suggestions(
-                screening, profile, job,
-            )
-            rec_val = screening.recommendation.value if hasattr(screening.recommendation, "value") else str(screening.recommendation)
-            sl_val = screening.strength_level.value if hasattr(screening.strength_level, "value") else str(screening.strength_level)
-
-            return {
-                "candidate_id": str(candidate_id),
-                "candidate_name": user.full_name,
-                "job_id": str(screening.job_id),
-                "job_title": job.title if job else "",
-                "overall_score": screening.overall_match_score,
-                "feature_importance": feature_importance,
-                "positive_factors": positive_factors,
-                "negative_factors": negative_factors,
-                "reasoning_summary": reasoning_summary,
-                "confidence": confidence,
-                "improvement_suggestions": improvement_suggestions,
-                "strengths": screening.strengths or [],
-                "weaknesses": screening.weaknesses or [],
-                "matched_skills": screening.matched_skills or [],
-                "missing_skills": screening.missing_required_skills or [],
-                "recommendation": rec_val,
-                "strength_level": sl_val,
-                "shap_available": HAS_SHAP,
-                "lime_available": HAS_LIME,
-            }
+            return await self.explain_screening_result(screening, profile=profile)
 
         return await self._generate_profile_explanation(candidate_id, profile, user)
+
+    async def explain_screening_result(
+        self,
+        screening: ScreeningResult,
+        profile: CandidateProfile | None = None,
+    ) -> dict[str, Any]:
+        """Explain an *already resolved* screening result (Phase 6 entry point).
+
+        The caller resolves the ``ScreeningResult`` itself — by
+        ``application_id`` — so a candidate's other applications can never leak
+        into this explanation. This method computes no score of its own: it
+        reuses the very same helpers, weights and stored dimension values as
+        :meth:`explain_candidate`, which guarantees the two entry points always
+        describe identical evidence in identical terms.
+
+        Args:
+            screening: the authoritative stored screening result.
+            profile: already-loaded candidate profile, if the caller has it.
+                Resolved from the database only when omitted.
+
+        Returns:
+            The explainability payload. There is no ``error`` key: an absent
+            screening result is a caller-side condition, not an engine error.
+        """
+        candidate_id = screening.candidate_id
+        if profile is None:
+            profile = await self.profile_repo.get_by_user_id(candidate_id)
+        user = await self.session.get(User, candidate_id)
+        job = await self.session.get(Job, screening.job_id)
+
+        feature_importance = self._calculate_feature_importance(screening)
+        positive_factors, negative_factors = self._identify_factors(
+            screening, feature_importance,
+        )
+        reasoning_summary = self._build_reasoning_summary(
+            screening, positive_factors, negative_factors,
+        )
+        confidence = self._calculate_confidence(screening, profile)
+        improvement_suggestions = await self._generate_improvement_suggestions(
+            screening, profile, job,
+        )
+        rec_val = (
+            screening.recommendation.value
+            if hasattr(screening.recommendation, "value")
+            else str(screening.recommendation)
+        )
+        sl_val = (
+            screening.strength_level.value
+            if hasattr(screening.strength_level, "value")
+            else str(screening.strength_level)
+        )
+
+        return {
+            "candidate_id": str(candidate_id),
+            "candidate_name": user.full_name if user else "",
+            "job_id": str(screening.job_id),
+            "job_title": job.title if job else "",
+            "overall_score": screening.overall_match_score,
+            "feature_importance": feature_importance,
+            "positive_factors": positive_factors,
+            "negative_factors": negative_factors,
+            "reasoning_summary": reasoning_summary,
+            "confidence": confidence,
+            "improvement_suggestions": improvement_suggestions,
+            "strengths": screening.strengths or [],
+            "weaknesses": screening.weaknesses or [],
+            "matched_skills": screening.matched_skills or [],
+            "missing_skills": screening.missing_required_skills or [],
+            "recommendation": rec_val,
+            "strength_level": sl_val,
+            "shap_available": HAS_SHAP,
+            "lime_available": HAS_LIME,
+        }
 
     async def _generate_profile_explanation(
         self,

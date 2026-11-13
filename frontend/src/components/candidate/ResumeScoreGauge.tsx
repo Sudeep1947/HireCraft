@@ -10,8 +10,8 @@ export function ResumeScoreGauge({ score, label, size = "md" }: ResumeScoreGauge
   const offset = circumference - (clamped / 100) * circumference;
 
   const getColor = (s: number) => {
-    if (s >= 80) return "text-green-600 stroke-green-500";
-    if (s >= 60) return "text-yellow-600 stroke-yellow-500";
+    if (s >= 80) return "text-emerald-600 stroke-emerald-500";
+    if (s >= 60) return "text-amber-500 stroke-amber-500";
     return "text-red-600 stroke-red-500";
   };
 
@@ -19,7 +19,7 @@ export function ResumeScoreGauge({ score, label, size = "md" }: ResumeScoreGauge
 
   return (
     <div className={`flex flex-col items-center ${dims}`}>
-      <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
+      <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
         <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" strokeWidth="8" />
         <circle
           cx="60"
@@ -37,13 +37,13 @@ export function ResumeScoreGauge({ score, label, size = "md" }: ResumeScoreGauge
           y="60"
           textAnchor="middle"
           dy="0.35em"
-          className={`fill-current text-2xl font-bold ${getColor(clamped)}`}
+          className={`fill-current font-display text-2xl font-bold ${getColor(clamped)}`}
           transform="rotate(90, 60, 60)"
         >
           {clamped}
         </text>
       </svg>
-      <p className="mt-1 text-xs font-medium text-gray-500">{label}</p>
+      <p className="mt-1 truncate text-xs font-medium text-gray-500">{label}</p>
     </div>
   );
 }

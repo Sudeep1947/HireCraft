@@ -420,9 +420,11 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
   // --- Browser not supported ---
   if (browserSupported === false) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+      <div className="card border-amber-200/80 bg-amber-50/70 p-6">
         <div className="flex items-start gap-3">
-          <MicOff className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" aria-hidden="true" />
+          <span className="mt-0.5 rounded-lg bg-amber-100 p-1.5 text-amber-600" aria-hidden="true">
+            <MicOff className="h-4 w-4" />
+          </span>
           <div>
             <h3 className="text-sm font-semibold text-amber-800">Voice input not available</h3>
             <p className="mt-1 text-sm text-amber-700">
@@ -438,28 +440,36 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
   return (
     <div className="space-y-4" role="region" aria-label="Voice Profile Agent">
       {/* ── Main Card ─────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-          <Mic className="h-5 w-5 text-primary-600" aria-hidden="true" />
-          Build Your Profile With Your Voice
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Tell us about your skills and experience naturally. Your words are converted to text, analyzed,
-          and reviewed before any profile changes.
-        </p>
+      <div className="card relative overflow-hidden p-6">
+        <div
+          className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-brand-gradient-soft blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative">
+          <h2 className="flex items-center gap-3 section-title">
+            <span className="rounded-xl bg-primary-50 p-2.5 text-primary-600">
+              <Mic className="h-5 w-5" aria-hidden="true" />
+            </span>
+            Build Your Profile With Your Voice
+          </h2>
+          <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
+            Tell us about your skills and experience naturally. Your words are converted to text, analyzed,
+            and reviewed before any profile changes.
+          </p>
+        </div>
 
         {/* ── IDLE: Mic button ────────────────────────────────────────── */}
         {state === "idle" && (
-          <div className="mt-6 flex flex-col items-center gap-4">
+          <div className="relative mt-8 flex flex-col items-center gap-4">
             <button
               type="button"
               onClick={startListening}
-              className="group flex h-20 w-20 items-center justify-center rounded-full bg-primary-100 text-primary-600 transition-all hover:bg-primary-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-primary-200"
+              className="group flex h-20 w-20 items-center justify-center rounded-full bg-brand-gradient text-white shadow-glow transition-all duration-200 hover:scale-105 hover:shadow-glow focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-2"
               aria-label="Start voice recording"
             >
               <Mic className="h-8 w-8 transition-transform group-hover:scale-110" />
             </button>
-            <span className="text-sm font-medium text-gray-500">Tap to start speaking</span>
+            <span className="text-sm font-medium text-gray-600">Tap to start speaking</span>
             <p className="max-w-sm text-center text-xs text-gray-400">
               Example: &ldquo;I have 2 years of Python experience. I&apos;ve worked with FastAPI
               and PostgreSQL. I&apos;m currently learning Docker.&rdquo;
@@ -470,7 +480,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
                 setTranscript("");
                 setState("transcript_ready");
               }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 transition-colors hover:text-gray-600"
+              className="inline-flex items-center gap-1.5 rounded px-1 text-xs font-medium text-gray-500 transition-colors hover:text-primary-700"
             >
               <Keyboard className="h-3.5 w-3.5" aria-hidden="true" />
               Or type instead
@@ -480,27 +490,31 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
 
         {/* ── LISTENING ───────────────────────────────────────────────── */}
         {state === "listening" && (
-          <div className="mt-6 flex flex-col items-center gap-4">
+          <div className="relative mt-8 flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-20" />
+              <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-20" aria-hidden="true" />
+              <div
+                className="absolute inset-[-10px] animate-pulse-soft rounded-full bg-red-400/20"
+                aria-hidden="true"
+              />
               <button
                 type="button"
                 onClick={stopListening}
-                className="relative flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-red-600 transition-all hover:bg-red-200 focus:outline-none focus:ring-4 focus:ring-red-200"
+                className="relative flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-200 transition-all hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 focus-visible:ring-offset-2"
                 aria-label="Stop voice recording"
               >
                 <MicOff className="h-8 w-8" />
               </button>
             </div>
             <span className="flex items-center gap-2 text-sm font-medium text-red-600">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" aria-hidden="true" />
               Listening...
             </span>
             {(transcript || interimTranscript) && (
-              <div className="max-w-md rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              <div className="max-w-md rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700 shadow-xs">
                 {transcript && <span>{transcript}</span>}
                 {interimTranscript && (
-                  <span className="text-gray-400 italic">{interimTranscript}</span>
+                  <span className="italic text-gray-400">{interimTranscript}</span>
                 )}
               </div>
             )}
@@ -509,30 +523,31 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
 
         {/* ── TRANSCRIPT READY ────────────────────────────────────────── */}
         {state === "transcript_ready" && (
-          <div className="mt-6 space-y-4">
+          <div className="relative mt-6 space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">Your Transcript</label>
+              <label className="field-label" htmlFor="voice-transcript">Your Transcript</label>
               <textarea
+                id="voice-transcript"
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
                 rows={4}
                 placeholder="Type or paste your skills, experience, and education here..."
-                className="w-full rounded-xl border border-gray-300 p-3 text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                className="field resize-y"
                 aria-label="Edit transcript before analysis"
                 autoFocus
               />
               {!transcript.trim() && (
-                <p className="mt-1.5 text-xs text-gray-400">
+                <p className="field-hint">
                   Describe your skills, years of experience, projects, or anything you&apos;d like in your profile.
                 </p>
               )}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => analyzeTranscript(transcript)}
                 disabled={!transcript.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+                className="btn-primary"
               >
                 <Send className="h-4 w-4" aria-hidden="true" />
                 Analyze
@@ -540,7 +555,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
               <button
                 type="button"
                 onClick={startListening}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                className="btn-secondary"
               >
                 <Mic className="h-4 w-4" aria-hidden="true" />
                 Use Voice
@@ -548,7 +563,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                className="btn-secondary"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
                 Discard
@@ -559,37 +574,39 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
 
         {/* ── ANALYZING ───────────────────────────────────────────────── */}
         {state === "analyzing" && (
-          <div className="mt-6 flex flex-col items-center gap-3 py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+          <div className="relative mt-6 flex flex-col items-center gap-3 py-8" role="status">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50">
+              <Loader2 className="h-6 w-6 animate-spin text-primary-600" aria-hidden="true" />
+            </span>
             <span className="text-sm font-medium text-gray-600">Analyzing your profile...</span>
           </div>
         )}
 
         {/* ── REVIEW ──────────────────────────────────────────────────── */}
         {state === "review" && result && (
-          <div className="mt-6 space-y-6">
-            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" aria-hidden="true" />
-                <span className="text-sm font-semibold text-green-800">Information extracted</span>
+          <div className="relative mt-6 space-y-6">
+            <div className="success-banner">
+              <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <div>
+                <span className="block text-sm font-semibold">Information extracted</span>
+                <p className="mt-0.5 text-xs text-emerald-700">
+                  Review and edit before confirming. Uncheck skills you don&apos;t want added.
+                </p>
               </div>
-              <p className="mt-1 text-xs text-green-700">
-                Review and edit before confirming. Uncheck skills you don&apos;t want added.
-              </p>
             </div>
 
             {/* Skills */}
             {result.skills.length > 0 && (
               <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Skills</h3>
+                <h3 className="section-label mb-3">Skills</h3>
                 <div className="flex flex-wrap gap-2">
                   {result.skills.map((skill) => (
                     <label
                       key={skill.name}
-                      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
                         selectedSkills.has(skill.name)
-                          ? "border-primary-300 bg-primary-50 text-primary-800"
-                          : "border-gray-200 bg-gray-50 text-gray-400 line-through"
+                          ? "border-primary-300 bg-primary-50 text-primary-800 shadow-xs"
+                          : "border-gray-200 bg-gray-50 text-gray-400 line-through hover:border-gray-300"
                       }`}
                     >
                       <input
@@ -611,10 +628,13 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
             {/* Experience */}
             {editedExperience.length > 0 && (
               <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Experience</h3>
+                <h3 className="section-label mb-3">Experience</h3>
                 <div className="space-y-2">
                   {editedExperience.map((exp) => (
-                    <div key={exp.skill} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    <div
+                      key={exp.skill}
+                      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2 shadow-xs"
+                    >
                       <span className="text-sm font-medium text-gray-800">{exp.skill}</span>
                       <span className="text-xs text-gray-500">&mdash;</span>
                       <input
@@ -623,7 +643,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
                         max={50}
                         value={exp.years ?? ""}
                         onChange={(e) => updateExperienceYears(exp.skill, e.target.value)}
-                        className="w-16 rounded border border-gray-300 px-2 py-1 text-sm text-gray-800 focus:border-primary-400 focus:outline-none"
+                        className="field w-16 !px-2 !py-1 text-center"
                         placeholder="?"
                         aria-label={`Years of experience for ${exp.skill}`}
                       />
@@ -637,12 +657,12 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
             {/* Learning */}
             {result.learning.length > 0 && (
               <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Currently Learning</h3>
+                <h3 className="section-label mb-3">Currently Learning</h3>
                 <div className="flex flex-wrap gap-2">
                   {result.learning.map((skill) => (
                     <span
                       key={skill}
-                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800"
+                      className="badge-warning !px-3 !py-1 !text-sm"
                     >
                       {skill}
                     </span>
@@ -654,7 +674,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
             {/* Education */}
             {result.education.length > 0 && (
               <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Education</h3>
+                <h3 className="section-label mb-3">Education</h3>
                 <ul className="space-y-1">
                   {result.education.map((edu, i) => (
                     <li key={i} className="text-sm text-gray-700">&bull; {edu}</li>
@@ -666,7 +686,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
             {/* Projects */}
             {result.projects.length > 0 && (
               <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Projects</h3>
+                <h3 className="section-label mb-3">Projects</h3>
                 <ul className="space-y-1">
                   {result.projects.map((proj, i) => (
                     <li key={i} className="text-sm text-gray-700">&bull; {proj}</li>
@@ -678,7 +698,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
             {/* Certifications */}
             {result.certifications.length > 0 && (
               <section>
-                <h3 className="mb-3 text-sm font-bold text-gray-900">Certifications</h3>
+                <h3 className="section-label mb-3">Certifications</h3>
                 <ul className="space-y-1">
                   {result.certifications.map((cert, i) => (
                     <li key={i} className="text-sm text-gray-700">&bull; {cert}</li>
@@ -688,11 +708,11 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
             )}
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 border-t border-gray-100 pt-4">
               <button
                 type="button"
                 onClick={confirmUpdate}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+                className="btn-primary"
               >
                 <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 Confirm &amp; Update Profile
@@ -700,7 +720,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                className="btn-secondary"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 Start Over
@@ -711,19 +731,21 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
 
         {/* ── CONFIRMING ──────────────────────────────────────────────── */}
         {state === "confirming" && (
-          <div className="mt-6 flex flex-col items-center gap-3 py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+          <div className="relative mt-6 flex flex-col items-center gap-3 py-8" role="status">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50">
+              <Loader2 className="h-6 w-6 animate-spin text-primary-600" aria-hidden="true" />
+            </span>
             <span className="text-sm font-medium text-gray-600">Updating your profile...</span>
           </div>
         )}
 
         {/* ── SUCCESS ─────────────────────────────────────────────────── */}
         {state === "success" && (
-          <div className="mt-6 space-y-4">
-            <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
-              <CheckCircle className="mx-auto h-10 w-10 text-green-500" aria-hidden="true" />
-              <h3 className="mt-2 text-sm font-bold text-green-800">Profile Updated</h3>
-              <ul className="mt-2 space-y-1 text-sm text-green-700">
+          <div className="relative mt-6 space-y-4">
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/80 p-6 text-center shadow-xs animate-scale-in">
+              <CheckCircle className="mx-auto h-10 w-10 text-emerald-500" aria-hidden="true" />
+              <h3 className="mt-2 text-sm font-bold text-emerald-800">Profile Updated</h3>
+              <ul className="mt-2 space-y-1 text-sm text-emerald-700">
                 <li>&#10003; Skills synchronized</li>
                 <li>&#10003; Profile updated</li>
                 <li>&#10003; Skill intelligence updated</li>
@@ -733,7 +755,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+                className="btn-primary"
               >
                 <Mic className="h-4 w-4" aria-hidden="true" />
                 Add More
@@ -744,16 +766,14 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
 
         {/* ── ERROR ───────────────────────────────────────────────────── */}
         {state === "error" && (
-          <div className="mt-6 space-y-4">
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-medium text-red-800">{errorMessage}</p>
-                  <p className="mt-1 text-xs text-red-600">
-                    You can always type or paste your information instead.
-                  </p>
-                </div>
+          <div className="relative mt-6 space-y-4">
+            <div className="error-banner items-start">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-medium">{errorMessage}</p>
+                <p className="mt-1 text-xs text-red-600">
+                  You can always type or paste your information instead.
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -764,7 +784,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
                   setTranscript("");
                   setState("transcript_ready");
                 }}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                className="btn-secondary"
               >
                 <Keyboard className="h-4 w-4" aria-hidden="true" />
                 Type Instead
@@ -772,7 +792,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+                className="btn-primary"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 Try Voice Again
@@ -784,7 +804,7 @@ export function VoiceProfileAgent({ onProfileUpdated }: VoiceProfileAgentProps) 
                     setErrorMessage("");
                     setState("transcript_ready");
                   }}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  className="btn-secondary"
                 >
                   <Pencil className="h-4 w-4" aria-hidden="true" />
                   Edit Transcript
